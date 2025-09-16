@@ -24,13 +24,13 @@
 <h1>Kecoaxx Devices</h1>
 
 <div class="filters">
+  <input type="text" id="searchName" placeholder="Cari nama..." />
   <select id="timeRange">
     <option value="day">Hari ini</option>
     <option value="week">Minggu ini</option>
     <option value="month">Bulan ini</option>
     <option value="all">Semua</option>
   </select>
-
   <select id="limit">
     <option value="10">10</option>
     <option value="20">20</option>
@@ -66,20 +66,21 @@ const firebaseConfig = {
   projectId: "kecoaxx-db898",
   storageBucket: "kecoaxx-db898.appspot.com",
   messagingSenderId: "929070876762",
-  appId: "1:929070876:web:696c8699f91e8022cc7063"
+  appId: "1:929070876762:web:696c8699f91e8022cc7063"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
 
+const searchName = document.getElementById("searchName");
 const timeRange = document.getElementById("timeRange");
 const limit = document.getElementById("limit");
 const table = document.getElementById("devices-table");
 
 let devicesData = [];
-let snapshotWeek = {};   // isi manual totalSent awal minggu per device
-let snapshotMonth = {};  // isi manual totalSent awal bulan per device
+let snapshotWeek = {};
+let snapshotMonth = {};
 
 onValue(devicesRef, snapshot => {
   devicesData = [];
@@ -92,14 +93,14 @@ onValue(devicesRef, snapshot => {
   });
   renderTable();
 });
-<input type="text" id="searchName" placeholder="Cari nama..." />
-const searchName = document.getElementById("searchName");
 
 function renderTable() {
   table.innerHTML = "";
+
   let filtered = devicesData.filter(d => d.botName.toLowerCase().includes(searchName.value.toLowerCase()));
 
   let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
+
   filtered.slice(0, lim).forEach(d => {
     let sent = 0;
     switch(timeRange.value){
@@ -124,38 +125,7 @@ function renderTable() {
   if(filtered.length === 0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
 }
 
-// event listener
-[timeRange, limit, searchName].forEach(el => el.addEventListener("input", renderTable));
-
-function renderTable() {
-  table.innerHTML = "";
-  let lim = limit.value === "all" ? devicesData.length : parseInt(limit.value);
-
-  devicesData.slice(0, lim).forEach(d => {
-    let sent = 0;
-    switch(timeRange.value){
-      case "day": sent = d.sentToday ?? 0; break;
-      case "week": sent = (d.totalSent ?? 0) - (snapshotWeek[d.id] ?? 0); break;
-      case "month": sent = (d.totalSent ?? 0) - (snapshotMonth[d.id] ?? 0); break;
-      case "all": sent = d.totalSent ?? 0; break;
-    }
-
-    const row = `
-      <tr>
-        <td>${d.botName||"-"}</td>
-        <td>${sent}</td>
-        <td>${d.deviceName||d.id}</td>
-        <td>${d.appVersion||"-"}</td>
-        <td>${d.status||"-"}</td>
-      </tr>
-    `;
-    table.innerHTML += row;
-  });
-
-  if(devicesData.length === 0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
-}
-
-[timeRange, limit].forEach(el => el.addEventListener("change", renderTable));
+[searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
 </script>
 
 </body>
