@@ -1,1 +1,162 @@
-this
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kecoaxx Devices</title>
+<style>
+  body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; padding:10px; }
+  h1 { text-align:center; margin:10px 0 18px 0; font-size:1.4rem; color:#fff; }
+  .table-container { overflow-x:auto; }
+  table { width:100%; min-width:400px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
+  thead { background:#272727; }
+  th, td { padding:6px 10px; text-align:left; }
+  th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; }
+  tr:nth-child(even) { background:#2a2a2a; }
+  tr:hover { background:#333; }
+  td { border-bottom:1px solid #2c2c2c; vertical-align:middle; }
+  .empty { text-align:center; padding:16px; color:#888; }
+  .filters { margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<h1>Kecoaxx Devices</h1>
+
+<div class="filters">
+  <select id="timeRange">
+    <option value="day">Hari ini</option>
+    <option value="week">Minggu ini</option>
+    <option value="month">Bulan ini</option>
+    <option value="all">Semua</option>
+  </select>
+
+  <select id="limit">
+    <option value="10">10</option>
+    <option value="20">20</option>
+    <option value="all">Semua</option>
+  </select>
+</div>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Nama</th>
+        <th>Sent</th>
+        <th>Device</th>
+        <th>Versi bot</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="devices-table">
+      <tr><td colspan="5" class="empty">Loading data...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBWrIDwTn4Byd9gZdYeGtwVUe0q2f2KYT4",
+  authDomain: "kecoaxx-db898.firebaseapp.com",
+  databaseURL: "https://kecoaxx-db898-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kecoaxx-db898",
+  storageBucket: "kecoaxx-db898.appspot.com",
+  messagingSenderId: "929070876762",
+  appId: "1:929070876:web:696c8699f91e8022cc7063"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const devicesRef = ref(db, "devices");
+
+const timeRange = document.getElementById("timeRange");
+const limit = document.getElementById("limit");
+const table = document.getElementById("devices-table");
+
+let devicesData = [];
+let snapshotWeek = {};   // isi manual totalSent awal minggu per device
+let snapshotMonth = {};  // isi manual totalSent awal bulan per device
+
+onValue(devicesRef, snapshot => {
+  devicesData = [];
+  snapshot.forEach(child => {
+    const data = child.val();
+    data.id = child.key;
+    devicesData.push(data);
+    if(snapshotWeek[data.id] === undefined) snapshotWeek[data.id] = data.totalSent ?? 0;
+    if(snapshotMonth[data.id] === undefined) snapshotMonth[data.id] = data.totalSent ?? 0;
+  });
+  renderTable();
+});
+<input type="text" id="searchName" placeholder="Cari nama..." />
+const searchName = document.getElementById("searchName");
+
+function renderTable() {
+  table.innerHTML = "";
+  let filtered = devicesData.filter(d => d.botName.toLowerCase().includes(searchName.value.toLowerCase()));
+
+  let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
+  filtered.slice(0, lim).forEach(d => {
+    let sent = 0;
+    switch(timeRange.value){
+      case "day": sent = d.sentToday ?? 0; break;
+      case "week": sent = (d.totalSent ?? 0) - (snapshotWeek[d.id] ?? 0); break;
+      case "month": sent = (d.totalSent ?? 0) - (snapshotMonth[d.id] ?? 0); break;
+      case "all": sent = d.totalSent ?? 0; break;
+    }
+
+    const row = `
+      <tr>
+        <td>${d.botName||"-"}</td>
+        <td>${sent}</td>
+        <td>${d.deviceName||d.id}</td>
+        <td>${d.appVersion||"-"}</td>
+        <td>${d.status||"-"}</td>
+      </tr>
+    `;
+    table.innerHTML += row;
+  });
+
+  if(filtered.length === 0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
+}
+
+// event listener
+[timeRange, limit, searchName].forEach(el => el.addEventListener("input", renderTable));
+
+function renderTable() {
+  table.innerHTML = "";
+  let lim = limit.value === "all" ? devicesData.length : parseInt(limit.value);
+
+  devicesData.slice(0, lim).forEach(d => {
+    let sent = 0;
+    switch(timeRange.value){
+      case "day": sent = d.sentToday ?? 0; break;
+      case "week": sent = (d.totalSent ?? 0) - (snapshotWeek[d.id] ?? 0); break;
+      case "month": sent = (d.totalSent ?? 0) - (snapshotMonth[d.id] ?? 0); break;
+      case "all": sent = d.totalSent ?? 0; break;
+    }
+
+    const row = `
+      <tr>
+        <td>${d.botName||"-"}</td>
+        <td>${sent}</td>
+        <td>${d.deviceName||d.id}</td>
+        <td>${d.appVersion||"-"}</td>
+        <td>${d.status||"-"}</td>
+      </tr>
+    `;
+    table.innerHTML += row;
+  });
+
+  if(devicesData.length === 0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
+}
+
+[timeRange, limit].forEach(el => el.addEventListener("change", renderTable));
+</script>
+
+</body>
+</html>
