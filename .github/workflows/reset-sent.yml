@@ -2,7 +2,7 @@ name: Reset sentToday
 
 on:
   schedule:
-    - cron: "0 17 * * *" # reset tiap jam 00:00 WIB (UTC+7)
+      - cron: "35 13 * * *" # jalan tiap hari jam 20:35 WIB
   workflow_dispatch: # bisa manual juga
 
 jobs:
