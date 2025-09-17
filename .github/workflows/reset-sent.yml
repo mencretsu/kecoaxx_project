@@ -3,7 +3,7 @@ name: Reset sentToday
 on:
   schedule:
     # reset tiap jam 00:00 WIB (WIB = UTC+7)
-    - cron: "0 14 * * *"   # 17 UTC = 00 WIB
+    - cron: "11 14 * * *"   # 17 UTC = 00 WIB
   workflow_dispatch:       # biar bisa lo jalankan manual dari GitHub Actions tab
 
 jobs:
