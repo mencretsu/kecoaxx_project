@@ -2,7 +2,7 @@ name: Reset sentToday
 
 on:
   schedule:
-      - cron: "35 13 * * *" # jalan tiap hari jam 20:35 WIB
+    - cron: "35 13 * * *" # jalan tiap hari jam 20:35 WIB
   workflow_dispatch: # bisa manual juga
 
 jobs:
@@ -25,12 +25,13 @@ jobs:
           FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
           FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
         run: |
-          echo $FIREBASE_SA_B64 | base64 -d > sa.json
+          echo "$FIREBASE_SA_B64" | base64 --decode > sa.json
           node <<'EOF'
           const admin = require("firebase-admin");
           const fs = require("fs");
 
-          const serviceAccount = require("./sa.json");
+          const serviceAccount = JSON.parse(fs.readFileSync("sa.json", "utf8"));
+
           admin.initializeApp({
             credential: admin.credential.cert(serviceAccount),
             databaseURL: process.env.FIREBASE_DB_URL,
