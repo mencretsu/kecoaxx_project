@@ -1,28 +1,44 @@
-name: Reset sentToday
+name: Reset sentToday (debug)
 
 on:
   schedule:
-    - cron: "00 15 * * *" # jam 00:00 WIB (17:00 UTC)
-  workflow_dispatch: # bisa manual trigger juga
+    - cron: "*/5 * * * *"   # JALAN SETIAP 5 MENIT (UTC) — cuma buat testing
+  workflow_dispatch:       # juga bisa manual run
 
 jobs:
   reset:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
+
+      - name: Print runner info & time
+        run: |
+          echo "=== RUN INFO ==="
+          echo "UTC now: $(date -u +"%Y-%m-%d %H:%M:%SZ")"
+          echo "GITHUB_REF=$GITHUB_REF"
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "RUNNER_OS=$RUNNER_OS"
+          echo "=== END INFO ==="
+
+      - name: Check secrets presence
+        env:
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+          FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
+        run: |
+          if [ -z "$FIREBASE_DB_URL" ]; then echo "MISSING FIREBASE_DB_URL"; else echo "FIREBASE_DB_URL present"; fi
+          if [ -z "$FIREBASE_SA_B64" ]; then echo "MISSING FIREBASE_SA_B64"; else echo "FIREBASE_SA_B64 present (len=${#FIREBASE_SA_B64})"; fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
 
       - name: Install deps
         run: npm install firebase-admin
 
-      - name: Run reset script
+      - name: Run reset script (with logs)
         env:
           FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
           FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
-        run: |
-          node scripts/resetSentToday.js
+        run: node scripts/resetSentToday.js
