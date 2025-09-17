@@ -1,10 +1,9 @@
 name: Reset sentToday
 
-# Cron job 00:00 WIB → 17:00 UTC
 on:
   schedule:
-    - cron: "45 15 * * *" 
-  workflow_dispatch: # bisa manual trigger
+    - cron: "50 15 * * *" # tiap hari jam 00:00 WIB (17:00 UTC)
+  workflow_dispatch: # bisa trigger manual juga
 
 jobs:
   reset:
@@ -22,8 +21,12 @@ jobs:
       - name: Install deps
         run: npm install firebase-admin
 
-      - name: Reset sentToday
+      - name: Create service account file
+        run: echo "$FIREBASE_SA_B64" | base64 --decode > sa.json
         env:
           FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
+
+      - name: Run reset sentToday
+        env:
           FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
         run: node scripts/resetSentToday.js
