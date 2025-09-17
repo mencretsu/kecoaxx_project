@@ -1,0 +1,50 @@
+name: Reset sentToday
+
+on:
+  schedule:
+    - cron: "0 17 * * *" # reset tiap jam 00:00 WIB (UTC+7)
+  workflow_dispatch: # bisa manual juga
+
+jobs:
+  reset:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install deps
+        run: npm install firebase-admin
+
+      - name: Reset sentToday
+        env:
+          FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+        run: |
+          echo $FIREBASE_SA_B64 | base64 -d > sa.json
+          node <<'EOF'
+          const admin = require("firebase-admin");
+          const fs = require("fs");
+
+          const serviceAccount = require("./sa.json");
+          admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount),
+            databaseURL: process.env.FIREBASE_DB_URL,
+          });
+
+          const db = admin.database();
+          db.ref("devices").once("value").then(snap => {
+            snap.forEach(child => {
+              child.ref.child("sentToday").set(0);
+            });
+            console.log("✅ Reset selesai");
+            process.exit(0);
+          }).catch(err => {
+            console.error("❌ Error:", err);
+            process.exit(1);
+          });
+          EOF
