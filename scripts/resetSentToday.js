@@ -1,61 +1,34 @@
-// scripts/resetSentToday.js
 const admin = require("firebase-admin");
+const fs = require("fs");
 
-function fail(msg, err) {
-  console.error("❌", msg);
-  if (err) console.error(err);
-  process.exit(1);
-}
+// decode service account dari env
+const saB64 = process.env.FIREBASE_SA_B64;
+fs.writeFileSync("sa.json", Buffer.from(saB64, "base64"));
 
-try {
-  if (!process.env.FIREBASE_SA_B64) fail("env FIREBASE_SA_B64 missing");
-  if (!process.env.FIREBASE_DB_URL) fail("env FIREBASE_DB_URL missing");
-} catch (e) {
-  fail("missing envs", e);
-}
+const serviceAccount = require("./sa.json");
 
-let serviceAccount;
-try {
-  serviceAccount = JSON.parse(
-    Buffer.from(process.env.FIREBASE_SA_B64, "base64").toString("utf8")
-  );
-} catch (e) {
-  fail("failed parsing FIREBASE_SA_B64 (not valid base64/json)", e);
-}
-
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: process.env.FIREBASE_DB_URL,
-  });
-} catch (e) {
-  fail("failed initializeApp", e);
-}
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: process.env.FIREBASE_DB_URL,
+});
 
 const db = admin.database();
 
-(async () => {
-  try {
-    console.log("🔔 Script start -", new Date().toISOString());
-    const snap = await db.ref("devices").once("value");
-    if (!snap.exists()) {
-      console.log("⚠️ Tidak ada data di /devices");
+db.ref("devices").once("value")
+  .then(snapshot => {
+    if (!snapshot.exists()) {
+      console.log("⚠️ Tidak ada devices");
       process.exit(0);
     }
 
-    const tasks = [];
-    let count = 0;
-    snap.forEach((child) => {
-      const deviceId = child.key;
-      count++;
-      console.log(" - will reset:", deviceId);
-      tasks.push(db.ref(`devices/${deviceId}/sentToday`).set(0));
+    snapshot.forEach(child => {
+      child.ref.child("sentToday").set(0);
     });
 
-    await Promise.all(tasks);
-    console.log(`✅ Reset selesai. Total devices reset: ${count}`);
+    console.log("✅ Reset sentToday selesai!");
     process.exit(0);
-  } catch (err) {
-    fail("Error during reset", err);
-  }
-})();
+  })
+  .catch(err => {
+    console.error("❌ Error reset sentToday:", err);
+    process.exit(1);
+  });
