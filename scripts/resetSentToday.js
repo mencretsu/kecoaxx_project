@@ -1,4 +1,3 @@
-// scripts/resetSentToday.js
 const admin = require("firebase-admin");
 
 const serviceAccount = JSON.parse(
@@ -20,12 +19,16 @@ const db = admin.database();
       process.exit(0);
     }
 
-    const updates = {};
+    const tasks = [];
     snap.forEach((child) => {
-      updates[`${child.key}/sentToday`] = 0;
+      const deviceId = child.key;
+      console.log(`🔄 Reset sentToday untuk device: ${deviceId}`);
+      tasks.push(
+        db.ref(`devices/${deviceId}/sentToday`).set(0)
+      );
     });
 
-    await db.ref("devices").update(updates);
+    await Promise.all(tasks);
 
     console.log("✅ Semua sentToday berhasil direset ke 0");
     process.exit(0);
