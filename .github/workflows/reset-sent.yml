@@ -2,22 +2,27 @@ name: Reset sentToday
 
 on:
   schedule:
-    # reset tiap jam 00:00 WIB (WIB = UTC+7)
-    - cron: "11 14 * * *"   # 17 UTC = 00 WIB
-  workflow_dispatch:       # biar bisa lo jalankan manual dari GitHub Actions tab
+    - cron: "17 14 * * *" # jam 00:00 WIB (17:00 UTC)
+  workflow_dispatch: # bisa manual trigger juga
 
 jobs:
   reset:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: 20
+
+      - name: Install deps
+        run: npm install firebase-admin
 
       - name: Run reset script
-        run: node scripts/resetSentToday.js
+        env:
+          FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
+          FIREBASE_DB_URL: ${{ secrets.FIREBASE_DB_URL }}
+        run: |
+          node scripts/resetSentToday.js
