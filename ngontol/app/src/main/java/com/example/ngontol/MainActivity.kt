@@ -72,8 +72,8 @@ class MainActivity : AppCompatActivity() {
 
             // whitelist aplikasi yg didukung
             val supportedPkgs = listOf(
-                "com.voicemaker.android",
-                "com.hwsj.club"
+                "com.xxx",
+                "com.xyx"
             )
 
             if (packageName !in supportedPkgs) {
