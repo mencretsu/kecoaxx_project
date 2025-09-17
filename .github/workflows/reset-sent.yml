@@ -3,7 +3,7 @@ name: Reset sentToday
 # Cron job 00:00 WIB → 17:00 UTC
 on:
   schedule:
-    - cron: "32 15 * * *" 
+    - cron: "37 15 * * *" 
   workflow_dispatch: # bisa manual trigger
 
 jobs:
