@@ -19,7 +19,7 @@ jobs:
           echo "GITHUB_REF=$GITHUB_REF"
           echo "GITHUB_SHA=$GITHUB_SHA"
           echo "RUNNER_OS=$RUNNER_OS"
-          echo "=== END INFO ==="
+          echo "=== END INFO- ==="
 
       - name: Check secrets presence
         env:
