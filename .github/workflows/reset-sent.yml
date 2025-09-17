@@ -3,7 +3,7 @@ name: Reset sentToday
 on:
   schedule:
     - cron: "0 17 * * *" # tiap hari jam 00:00 WIB (17:00 UTC)
-  workflow_dispatch: # bisa trigger manual juga
+  workflow_dispatch: # bisa manual trigger juga
 
 jobs:
   reset:
@@ -22,7 +22,7 @@ jobs:
         run: npm install firebase-admin
 
       - name: Create service account file
-        run: echo "$FIREBASE_SA_B64" | base64 --decode > sa.json
+        run: echo "$FIREBASE_SA_B64" | base64 --decode | tr -d '\r' > sa.json
         env:
           FIREBASE_SA_B64: ${{ secrets.FIREBASE_SA_B64 }}
 
