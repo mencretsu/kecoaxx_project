@@ -1,17 +1,14 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
     <style name="Theme.Ngontol" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Set default font semua widget -->
-        <item name="android:fontFamily">@font/jetbrains_mono</item>
-        <item name="fontFamily">@font/jetbrains_mono</item>
-
-        <!-- Agar tombol ikut juga -->
-        <item name="android:buttonStyle">@style/Button.Mono</item>
-        <item name="materialButtonStyle">@style/Button.Mono</item>
-    </style>
-
-    <!-- Style turunan khusus tombol -->
-    <style name="Button.Mono" parent="Widget.MaterialComponents.Button">
-        <item name="android:fontFamily">@font/jetbrains_mono</item>
-        <item name="fontFamily">@font/jetbrains_mono</item>
+        <!-- Semua warna pakai hitam -->
+        <item name="colorPrimary">@android:color/black</item>
+        <item name="colorPrimaryVariant">@android:color/black</item>
+        <item name="colorOnPrimary">@android:color/black</item>
+        <item name="colorSecondary">@android:color/black</item>
+        <item name="colorSecondaryVariant">@android:color/black</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        <item name="android:statusBarColor">@android:color/black</item>
+        <!-- Customize your theme here. -->
     </style>
 </resources>

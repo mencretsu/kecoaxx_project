@@ -1,11 +1,27 @@
 <resources>
-    <string name="app_name">ngontol bot v1</string>
-    <string name="simpan_profil">Simpan Profil</string>
+    <string name="app_name">kecoaxx</string>
+    <string name="simpan_profil">➜] Simpan</string>
     <string name="start_bot">Start Bot</string>
     <string name="domisili_kota">Domisili/kota</string>
-    <string name="api_key">API Key</string>
+    <string name="target">Target</string>
     <string name="nama">Nama</string>
     <string name="pekerjaan">Pekerjaan</string>
     <string name="hobi">Hobi</string>
-    <string name="log_ngontol_v10">== LOG == Ngontol v10 ==</string>
+    <string name="blacklist">Blacklist</string>
+    <string-array name="persona_labels">
+        <item>Manja</item>
+        <item>Tante Genit</item>
+        <item>Misterius</item>
+        <item>Sok Dingin</item>
+        <item>Pinter Kalem</item>
+        <item>Flirty Toxic</item>
+        <item>Sopan</item>
+    </string-array>
+
+    <string name="log_ngontol_v10">== LOG ==</string>
+    <string name="login">Login</string>
+    <string name="kecoaxx_bot_v_15">KECOAXX BOT v.21</string>
+    <string name="update">⌕ UPDATE</string>
+    <string name="konfigurasi">✚ CONFIG</string>
+    <string name="aplikasi">Aplikasi</string>
 </resources>

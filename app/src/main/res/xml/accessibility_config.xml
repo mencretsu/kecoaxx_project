@@ -3,5 +3,6 @@
     android:accessibilityEventTypes="typeAllMask"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canRetrieveWindowContent="true"
+    android:canPerformGestures="true"
     android:notificationTimeout="100"
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows" />

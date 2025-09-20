@@ -1,0 +1,30 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:padding="16dp"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tvCurrentVersion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Versi saat ini: ..."
+        android:textColor="#FFFFFF"
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/btnCekUpdate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Periksa Update"
+        android:layout_marginTop="12dp" />
+
+    <TextView
+        android:id="@+id/tvUpdateInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#00FF66"
+        android:textSize="14sp"
+        android:layout_marginTop="12dp" />
+</LinearLayout>

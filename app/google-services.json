@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "929070876762",
+    "project_id": "kecoaxx-db898",
+    "storage_bucket": "kecoaxx-db898.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:929070876762:android:9e270b26d0cfd501cc7063",
+        "android_client_info": {
+          "package_name": "com.example.ngontol"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCP1a07LXB3FPYuszniQldtenSj1xtpmbo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
