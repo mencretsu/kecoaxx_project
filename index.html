@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Kecoaxx Page</title>
     <style>
         body {
@@ -19,12 +19,15 @@
             color: #ffffff;
         }
         .button {
-            display: block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
             width: 90%;
             max-width: 300px;
-            padding: 15px;
+            padding: 12px 16px;
             margin: 10px 0;
-            text-align: center;
+            text-align: left;
             background-color: #1f1f1f;
             color: #ffffff;
             text-decoration: none;
@@ -33,30 +36,114 @@
             border: 1px solid #333;
             transition: background-color 0.2s, color 0.2s;
         }
+        .button.no-icon {
+            justify-content: center;
+        }
+        .button svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            vertical-align: middle;
+        }
         .button:hover {
             background-color: #333333;
             color: #00bfff;
         }
         .sub-buttons {
             margin-top: 20px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #ffffff;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-size: 16px;
+            letter-spacing: 2px;
         }
     </style>
 </head>
 <body>
     <h1>-k e c o a x x-</h1>
 
-    <a class="button" href="dashboard.html">Dashboard</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug23.apk" target="_blank">Download Kecoaxx</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases" target="_blank">Versi lawas</a>
+    <a class="button no-icon" href="dashboard.html">Dashboard</a>
+
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug23.apk" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Download Kecoaxx
+    </a>
+
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Kecoaxx Versi Lawas
+    </a>
+
     <div class="sub-buttons">
-        <br><br><br>
-        ----- alat tempur -----
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/fakegps.apk" target="_blank">fake gps</a>
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/facebook.apk" target="_blank">facebook</a>
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/tiktok.apk" target="_blank">tiktok</a>
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/pinterest.apk" target="_blank">pinterest</a>
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/screenon.apk" target="_blank">screen on</a>
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/sugo.apk" target="_blank">sugo v33.0.1</a>
+        <h2>----- alat tempur -----</h2>
+
+        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/fakegps.apk" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            fake gps
+        </a>
+
+        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/facebook.apk" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            facebook
+        </a>
+
+        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/tiktok.apk" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            tiktok
+        </a>
+
+        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/pinterest.apk" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            pinterest
+        </a>
+
+        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/screenon.apk" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            screen on
+        </a>
+
+        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/sugo.apk" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            sugo v33.0.1
+        </a>
     </div>
 </body>
 </html>
