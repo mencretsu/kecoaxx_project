@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kecoaxx Devices</title>
+<title>Kecoaxx Dashboard</title>
 <style>
 body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:10px; }
 h1 { text-align:center; margin:10px 0 18px 0; font-size:1.4rem; color:#fff; }
@@ -18,11 +18,21 @@ td { border-bottom:1px solid #2c2c2c; vertical-align:middle; }
 .empty { text-align:center; padding:16px; color:#888; }
 .filters { margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap; }
 th.sortable { cursor:pointer; }
+.stats { display:flex; gap:16px; margin-bottom:10px; flex-wrap:wrap; }
+.stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
+.stat-box span { font-weight:bold; color:#90caf9; }
 </style>
 </head>
 <body>
 
-<h1>Kecoaxx Devices</h1>
+<h1>Kecoaxx Dashboard</h1>
+
+<div class="stats">
+  <div class="stat-box">Active Devices: <span id="stat-active">0</span></div>
+  <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
+  <div class="stat-box">API Limit: <span id="stat-api-limit">0</span></div>
+  <div class="stat-box">Total API: <span id="stat-api-total">0</span></div>
+</div>
 
 <div class="filters">
   <input type="text" id="searchName" placeholder="Cari nama..." />
@@ -71,11 +81,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
+const apiKeysRef = ref(db, "apikeys/api_keys");
 
 const searchName = document.getElementById("searchName");
 const timeRange = document.getElementById("timeRange");
 const limit = document.getElementById("limit");
 const table = document.getElementById("devices-table");
+
+const statActive = document.getElementById("stat-active");
+const statSent = document.getElementById("stat-sent");
+const statApiLimit = document.getElementById("stat-api-limit");
+const statApiTotal = document.getElementById("stat-api-total");
 
 let devicesData = [];
 let sortSentAsc = true;
@@ -105,15 +121,46 @@ function renderTable() {
 
 onValue(devicesRef, snapshot => {
   devicesData = [];
+  let totalSent = 0;
+  let activeCount = 0;
+
   snapshot.forEach(child => {
     const data = child.val();
     data.id = child.key;
+
+    const sent = timeRange.value === "today" ? (data.sentToday ?? 0) : (data.totalSent ?? 0);
+    if (sent > 0) { // aktif
+      activeCount++;
+      totalSent += sent;
+    }
+
     devicesData.push(data);
   });
+
+  statActive.textContent = activeCount;
+  statSent.textContent = totalSent;
   renderTable();
 }, err => {
-  console.error("❌ Error ambil data:", err);
+  console.error("❌ Error ambil devices:", err);
   table.innerHTML = `<tr><td colspan="5" class="empty">Error ambil data</td></tr>`;
+});
+
+onValue(apiKeysRef, snapshot => {
+  let totalKeys = 0;
+  let totalLimit = 0;
+
+  snapshot.forEach(child => {
+    totalKeys++;
+    const data = child.val();
+    if (data.status === "limit") totalLimit++;
+  });
+
+  statApiLimit.textContent = totalLimit;
+  statApiTotal.textContent = totalKeys;
+}, err => {
+  console.error("❌ Error ambil apikeys:", err);
+  statApiLimit.textContent = "-";
+  statApiTotal.textContent = "-";
 });
 
 // Search / filter / limit
