@@ -28,9 +28,10 @@ th.sortable { cursor:pointer; }
 <h1>Kecoaxx Dashboard</h1>
 
 <div class="stats">
-  <div class="stat-box">Aktif: <span id="stat-active">0</span></div>
+  <div class="stat-box">Active Devices: <span id="stat-active">0</span></div>
   <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
   <div class="stat-box">API Limit: <span id="stat-api-limit">0</span></div>
+  <div class="stat-box">API Available: <span id="stat-api-ok">0</span></div>
   <div class="stat-box">Total API: <span id="stat-api-total">0</span></div>
 </div>
 
@@ -91,6 +92,7 @@ const table = document.getElementById("devices-table");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
 const statApiLimit = document.getElementById("stat-api-limit");
+const statApiOk = document.getElementById("stat-api-ok");
 const statApiTotal = document.getElementById("stat-api-total");
 
 let devicesData = [];
@@ -148,18 +150,22 @@ onValue(devicesRef, snapshot => {
 onValue(apiKeysRef, snapshot => {
   let totalKeys = 0;
   let totalLimit = 0;
+  let totalOk = 0;
 
   snapshot.forEach(child => {
     totalKeys++;
     const data = child.val();
     if (data.status === "limit") totalLimit++;
+    if (data.status === "ok") totalOk++;
   });
 
   statApiLimit.textContent = totalLimit;
+  statApiOk.textContent = totalOk;
   statApiTotal.textContent = totalKeys;
 }, err => {
   console.error("❌ Error ambil apikeys:", err);
   statApiLimit.textContent = "-";
+  statApiOk.textContent = "-";
   statApiTotal.textContent = "-";
 });
 
@@ -171,7 +177,7 @@ document.querySelector("th.sortable").addEventListener("click", () => {
   devicesData.sort((a,b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
     const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
-    return sortSentAsc ? valB - valA : valA - valB; // klik pertama: terbesar dulu
+    return sortSentAsc ? valB - valA : valA - valB;
   });
   sortSentAsc = !sortSentAsc;
   renderTable();
