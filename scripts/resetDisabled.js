@@ -16,17 +16,20 @@ db.ref("apikeys/api_keys").once("value")
   .then(snapshot => {
     const promises = [];
     snapshot.forEach(child => {
-      // set disabled = false
-      promises.push(child.ref.child("disabled").set(false));
+      // set disabled = false dan reset usedToday
+      promises.push(child.ref.update({
+        disabled: false,
+        usedToday: 0
+      }));
     });
 
     return Promise.all(promises);
   })
   .then(() => {
-    console.log("✅ Reset disabled = false selesai");
+    console.log("✅ Reset disabled = false dan usedToday = 0 selesai");
     process.exit(0);
   })
   .catch(err => {
-    console.error("❌ Error reset disabled:", err);
+    console.error("❌ Error reset disabled/usedToday:", err);
     process.exit(1);
   });
