@@ -20,8 +20,17 @@
 
     <string name="log_ngontol_v10">== LOG ==</string>
     <string name="login">Login</string>
-    <string name="kecoaxx_bot_v_15">KECOAXX BOT v.21</string>
+    <string name="kecoaxx_bot_v_15">KECOAXX BOT v.60</string>
     <string name="update">⌕ UPDATE</string>
     <string name="konfigurasi">✚ CONFIG</string>
     <string name="aplikasi">Aplikasi</string>
+    <string name="opsi_relog">Opsi Relog:</string>
+    <string name="belum_dibaca">Belum Dibaca</string>
+    <string name="no_relog">No relog</string>
+
+    <string name="overlay">Overlay</string>
+    <string name="semua">Semua</string>
+    <string name="off">OFF</string>
+    <string name="hapus_data">Hapus data</string>
+    <string name="opsi_pengembang">⚒ Opsi Devlpr</string>
 </resources>

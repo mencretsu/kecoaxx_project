@@ -1,4 +1,4 @@
-package com.example.ngontol.model
+package com.example.ngontol.models
 
 import android.annotation.SuppressLint
 import kotlinx.serialization.SerialName

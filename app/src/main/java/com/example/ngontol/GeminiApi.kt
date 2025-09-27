@@ -1,16 +1,17 @@
 package com.example.ngontol
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import com.example.ngontol.firebase.FirebaseManager
 import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
-import org.json.JSONObject
+import kotlinx.coroutines.delay
 
 object GeminiApi {
 
@@ -53,128 +54,126 @@ object GeminiApi {
     private val requestAdapter = moshi.adapter(RequestPayload::class.java)
     private val responseAdapter = moshi.adapter(GeminiResponse::class.java)
 
-    fun generateReply(
+    @SuppressLint("UseKtx")
+    suspend fun generateReply(
         context: Context,
-        inputText: String,          // <-- ganti ke String, bukan Persona
-        persona: Persona,           // <-- Persona lo yang custom class
-        model: BotPersona = BotPersona.GENZ_CENTIL
-    ): String?    {
-        val triedKeys = mutableSetOf<String>()
-        val maxRetries = Constants.listapikey.size
+        inputText: String,
+        persona: Persona,
+        model: BotPersona = BotPersona.GENZ_CENTIL,
+        randomize: Boolean = true, // Ganti default jadi true
+        userCity: String? = null
+    ): String? {
+        val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
+        val cooldownPrefs = context.getSharedPreferences("key_cooldown", Context.MODE_PRIVATE)
 
-        while (triedKeys.size < maxRetries) {
-            val apiKey = (Constants.listapikey - triedKeys).random()
-            triedKeys.add(apiKey)
+        val cooldownMS = 8000L // Naikin jadi 8 detik biar lebih aman
+        val currentTime = System.currentTimeMillis()
 
-            val url =
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+        // Ambil API keys
+        var apiKeys = prefs.getStringSet("apiKey2", emptySet())?.toList()
 
-            val systemPrompt: String = generateSystemPrompt(persona, model)
+        if (apiKeys.isNullOrEmpty()) {
+            Log.d(TAG, "📥 Keys kosong, fetch dari Firebase...")
+            FirebaseManager.ensureDeviceInitialized(context)
+            FirebaseManager.fetchMaxKeys(context)
+            apiKeys = prefs.getStringSet("apiKey2", emptySet())?.toList()
+        }
 
-            val payload = RequestPayload(
-                contents = listOf(
-                    Content(parts = listOf(TextPart(systemPrompt))),
-                    Content(parts = listOf(TextPart(inputText.toString())))
+        if (apiKeys.isNullOrEmpty()) {
+            Log.w(TAG, "⚠️ Tidak ada API keys tersedia")
+            return null
+        }
+
+        // Filter keys yang sudah melewati cooldown
+        val availableKeys = apiKeys.filter { key ->
+            val lastUsed = cooldownPrefs.getLong(key, 0L)
+            val isAvailable = (currentTime - lastUsed) >= cooldownMS
+
+            if (!isAvailable) {
+                val remaining = ((cooldownMS - (currentTime - lastUsed)) / 1000.0)
+                Log.d(TAG, "⏳ Key ${key.takeLast(8)} cooldown: ${remaining}s")
+            }
+
+            isAvailable
+        }
+
+        if (availableKeys.isEmpty()) {
+            Log.w(TAG, "⏱️ Semua keys dalam cooldown")
+            return null
+        }
+
+        // RANDOM shuffled keys
+        val keysToUse = availableKeys.shuffled()
+//        Log.d(TAG, "🔑 Available: ${keysToUse.size}/${apiKeys.size} keys (random order)")
+
+        // Loop semua available keys
+        for ((index, apiKey) in keysToUse.withIndex()) {
+            // Delay random 300-800ms sebelum request (kecuali key pertama)
+            if (index > 0) {
+                val randomDelay = (2000L..3000L).random()
+//                Log.d(TAG, "⏳ Delay ${randomDelay}ms sebelum key ${index + 1}")
+                delay(randomDelay)
+            }
+
+            val reply = try {
+//                Log.d(TAG, "🚀 Trying key ${index + 1}/${keysToUse.size}")
+
+                val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+                val systemPrompt = generateSystemPrompt(persona, model, userCity)
+
+                val payload = RequestPayload(
+                    contents = listOf(
+                        Content(parts = listOf(TextPart(systemPrompt))),
+                        Content(parts = listOf(TextPart(inputText)))
+                    )
                 )
-            )
 
-            val json = requestAdapter.toJson(payload)
-            val body = json.toRequestBody("application/json".toMediaType())
+                val json = requestAdapter.toJson(payload)
+                val body = json.toRequestBody("application/json".toMediaType())
+                val request = Request.Builder().url(url).post(body).build()
 
-            val request = Request.Builder()
-                .url(url)
-                .post(body)
-                .build()
+                client.newCall(request).execute().use { response ->
+                    // Update timestamp SETELAH request
+                    cooldownPrefs.edit().putLong(apiKey, System.currentTimeMillis()).apply()
 
-            try {
-                val response = client.newCall(request).execute()
+                    when (response.code) {
+                        200 -> {
+                            val bodyStr = response.body?.string().orEmpty()
+                            val text = responseAdapter.fromJson(bodyStr)
+                                ?.candidates?.firstOrNull()
+                                ?.content?.parts?.firstOrNull()?.text?.trim()
 
-                if (!response.isSuccessful) {
-                    val errorMsg = response.body?.string().orEmpty()
-                    Log.e(TAG, "HTTP ${response.code} – $errorMsg")
+                            if (text != null) {
+//                                Log.d(TAG, "✅ Sukses dengan key ${index + 1}")
+//                                Log.d(TAG, "✅ [${index + 1}] Sukses respons: $text")
 
-                    var isLimit = false
-                    var isInvalidKey = false
-
-                    // Deteksi 429: limit/habis
-                    if (response.code == 429) {
-                        try {
-                            val jsonObj = JSONObject(errorMsg)
-                            val message = jsonObj.optJSONObject("error")?.optString("message") ?: ""
-                            if (
-                                message.contains("Requests per day", ignoreCase = true) ||
-                                message.contains("Requests per minute", ignoreCase = true) ||
-                                message.contains("quota", ignoreCase = true) ||
-                                message.contains("limit", ignoreCase = true)
-                            ) {
-                                isLimit = true
-                                Log.e(TAG, "❌ Limit detected: $message (ganti key)")
                             }
-                        } catch (ex: Exception) {
-                            if (
-                                errorMsg.contains("Requests per day", ignoreCase = true) ||
-                                errorMsg.contains("Requests per minute", ignoreCase = true) ||
-                                errorMsg.contains("quota", ignoreCase = true) ||
-                                errorMsg.contains("limit", ignoreCase = true)
-                            ) {
-                                isLimit = true
-                                Log.e(TAG, "❌ Limit detected (fallback): $errorMsg (ganti key)")
-                            }
+                            text
+                        }
+                        429 -> {
+//                            Log.w(TAG, "⏱️ Rate limit key ${index + 1}")
+                            null
+                        }
+                        else -> {
+                            Log.w(TAG, "❌ Error ${response.code} key ${index + 1}")
+                            null
                         }
                     }
-
-                    // Deteksi 400: API key tidak valid
-                    if (response.code == 400) {
-                        try {
-                            val jsonObj = JSONObject(errorMsg)
-                            val reason = jsonObj.optJSONObject("error")
-                                ?.optJSONArray("details")
-                                ?.optJSONObject(0)
-                                ?.optString("reason")
-                                ?: ""
-                            if (reason == "API_KEY_INVALID") {
-                                isInvalidKey = true
-                                Log.e(TAG, "❌ API key invalid (ganti key)")
-                            }
-                        } catch (ex: Exception) {
-                            if (errorMsg.contains("API key not valid", ignoreCase = true)) {
-                                isInvalidKey = true
-                                Log.e(TAG, "❌ API key invalid (fallback) (ganti key)")
-                            }
-                        }
-                    }
-
-                    if (isLimit || isInvalidKey) continue // coba key berikutnya
-                    return null // error lain
                 }
-
-                val jsonString = response.body?.string()
-                val result = responseAdapter.fromJson(jsonString ?: "")
-                val reply = result?.candidates
-                    ?.firstOrNull()
-                    ?.content
-                    ?.parts
-                    ?.firstOrNull()
-                    ?.text
-                    ?.trim()
-
-                if (!reply.isNullOrEmpty()) {
-//                    totalSent++ // counter lokal
-                    FirebaseManager.incrementSent(context) // ✅ harus Context
-
-                    Log.d(TAG, "✅ Gemini reply: $reply")
-                    return reply
-                } else {
-                    Log.e(TAG, "❌ Reply kosong atau null! result = $result")
-                }
-
-
             } catch (e: Exception) {
-                Log.e(TAG, "❌ Error: ${e.message}", e)
-                return null
+                Log.e(TAG, "❌ Exception key ${index + 1}: ${e.message}")
+                // Update timestamp meskipun exception
+                cooldownPrefs.edit().putLong(apiKey, System.currentTimeMillis()).apply()
+                null
+            }
+
+            if (!reply.isNullOrEmpty()) {
+                FirebaseManager.incrementSent(context)
+                return reply
             }
         }
-        Log.e(TAG, "❌ Semua API key limit/habis!")
+
+        Log.w(TAG, "⚠️ Semua keys gagal atau cooldown")
         return null
     }
 }

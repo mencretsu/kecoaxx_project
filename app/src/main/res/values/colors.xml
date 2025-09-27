@@ -1,9 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="green_500">#4CAF50</color>
-    <color name="green_200">#A5D6A7</color>
+    <!-- Background Colors -->
+    <color name="bg_primary">#000000</color>
+    <color name="bg_header">#0A0A0A</color>
+    <color name="bg_button">#1A1A1A</color>
+
+    <!-- Text Colors -->
+    <color name="text_primary">#00FF66</color>
+    <color name="text_secondary">#666666</color>
+    <color name="text_hint">#444444</color>
+
+    <!-- Accent Colors -->
+    <color name="accent_green">#00FF66</color>
+    <color name="error_red">#FF5252</color>
+
+    <!-- Divider -->
+    <color name="divider">#1A1A1A</color>
+
+    <!-- Radio Button (existing) -->
+<!--    <color name="radio_color">#00FF66</color>-->
 </resources>
