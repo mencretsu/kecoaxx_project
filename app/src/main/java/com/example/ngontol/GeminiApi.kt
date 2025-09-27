@@ -10,6 +10,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 object GeminiApi {
@@ -53,128 +56,85 @@ object GeminiApi {
     private val requestAdapter = moshi.adapter(RequestPayload::class.java)
     private val responseAdapter = moshi.adapter(GeminiResponse::class.java)
 
-    fun generateReply(
+    suspend fun generateReply(
         context: Context,
-        inputText: String,          // <-- ganti ke String, bukan Persona
-        persona: Persona,           // <-- Persona lo yang custom class
-        model: BotPersona = BotPersona.GENZ_CENTIL
-    ): String?    {
-        val triedKeys = mutableSetOf<String>()
-        val maxRetries = Constants.listapikey.size
+        inputText: String,
+        persona: Persona,
+        model: BotPersona = BotPersona.GENZ_CENTIL,
+        retryCount: Int = 3
+    ): String? {
+        var remainingRetries = retryCount
 
-        while (triedKeys.size < maxRetries) {
-            val apiKey = (Constants.listapikey - triedKeys).random()
-            triedKeys.add(apiKey)
-
-            val url =
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
-
-            val systemPrompt: String = generateSystemPrompt(persona, model)
-
-            val payload = RequestPayload(
-                contents = listOf(
-                    Content(parts = listOf(TextPart(systemPrompt))),
-                    Content(parts = listOf(TextPart(inputText.toString())))
-                )
-            )
-
-            val json = requestAdapter.toJson(payload)
-            val body = json.toRequestBody("application/json".toMediaType())
-
-            val request = Request.Builder()
-                .url(url)
-                .post(body)
-                .build()
-
-            try {
-                val response = client.newCall(request).execute()
-
-                if (!response.isSuccessful) {
-                    val errorMsg = response.body?.string().orEmpty()
-                    Log.e(TAG, "HTTP ${response.code} – $errorMsg")
-
-                    var isLimit = false
-                    var isInvalidKey = false
-
-                    // Deteksi 429: limit/habis
-                    if (response.code == 429) {
-                        try {
-                            val jsonObj = JSONObject(errorMsg)
-                            val message = jsonObj.optJSONObject("error")?.optString("message") ?: ""
-                            if (
-                                message.contains("Requests per day", ignoreCase = true) ||
-                                message.contains("Requests per minute", ignoreCase = true) ||
-                                message.contains("quota", ignoreCase = true) ||
-                                message.contains("limit", ignoreCase = true)
-                            ) {
-                                isLimit = true
-                                Log.e(TAG, "❌ Limit detected: $message (ganti key)")
-                            }
-                        } catch (ex: Exception) {
-                            if (
-                                errorMsg.contains("Requests per day", ignoreCase = true) ||
-                                errorMsg.contains("Requests per minute", ignoreCase = true) ||
-                                errorMsg.contains("quota", ignoreCase = true) ||
-                                errorMsg.contains("limit", ignoreCase = true)
-                            ) {
-                                isLimit = true
-                                Log.e(TAG, "❌ Limit detected (fallback): $errorMsg (ganti key)")
-                            }
-                        }
-                    }
-
-                    // Deteksi 400: API key tidak valid
-                    if (response.code == 400) {
-                        try {
-                            val jsonObj = JSONObject(errorMsg)
-                            val reason = jsonObj.optJSONObject("error")
-                                ?.optJSONArray("details")
-                                ?.optJSONObject(0)
-                                ?.optString("reason")
-                                ?: ""
-                            if (reason == "API_KEY_INVALID") {
-                                isInvalidKey = true
-                                Log.e(TAG, "❌ API key invalid (ganti key)")
-                            }
-                        } catch (ex: Exception) {
-                            if (errorMsg.contains("API key not valid", ignoreCase = true)) {
-                                isInvalidKey = true
-                                Log.e(TAG, "❌ API key invalid (fallback) (ganti key)")
-                            }
-                        }
-                    }
-
-                    if (isLimit || isInvalidKey) continue // coba key berikutnya
-                    return null // error lain
-                }
-
-                val jsonString = response.body?.string()
-                val result = responseAdapter.fromJson(jsonString ?: "")
-                val reply = result?.candidates
-                    ?.firstOrNull()
-                    ?.content
-                    ?.parts
-                    ?.firstOrNull()
-                    ?.text
-                    ?.trim()
-
-                if (!reply.isNullOrEmpty()) {
-//                    totalSent++ // counter lokal
-                    FirebaseManager.incrementSent(context) // ✅ harus Context
-
-                    Log.d(TAG, "✅ Gemini reply: $reply")
-                    return reply
-                } else {
-                    Log.e(TAG, "❌ Reply kosong atau null! result = $result")
-                }
-
-
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Error: ${e.message}", e)
-                return null
+        while (remainingRetries > 0) {
+            val apiKey = FirebaseManager.getAvailableApiKey()
+            if (apiKey == null) {
+                Log.e(TAG, "❌ Semua API key habis/limit!")
+                delay(1000L)
+                remainingRetries--
+                continue
             }
+
+            val reply = withContext(Dispatchers.IO) {
+                val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+                val systemPrompt = generateSystemPrompt(persona, model)
+                val payload = RequestPayload(
+                    contents = listOf(
+                        Content(parts = listOf(TextPart(systemPrompt))),
+                        Content(parts = listOf(TextPart(inputText)))
+                    )
+                )
+                val json = requestAdapter.toJson(payload)
+                val body = json.toRequestBody("application/json".toMediaType())
+                val request = Request.Builder().url(url).post(body).build()
+
+                try {
+                    client.newCall(request).execute().use { response ->
+                        val code = response.code
+                        val bodyStr = response.body?.string().orEmpty()
+
+                        when (code) {
+                            200 -> {
+                                val result = responseAdapter.fromJson(bodyStr)
+                                result?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
+                            }
+                            400, 401, 403 -> {
+                                FirebaseManager.disableApiKey(apiKey)
+                                Log.w(TAG, "🚫 Key $apiKey disabled karena HTTP $code, ganti key...")
+                                null
+                            }
+                            429 -> {
+                                FirebaseManager.cooldownApiKey(apiKey, 60)
+                                Log.w(TAG, "⏳ Key $apiKey cooldown 60s karena 429, ganti key...")
+                                null
+                            }
+                            500, 503, 504 -> {
+                                Log.w(TAG, "⚠️ Server error $code, retrying...")
+                                null
+                            }
+                            else -> {
+                                Log.e(TAG, "❌ Unexpected HTTP $code: $bodyStr")
+                                null
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Exception: ${e.message}", e)
+                    null
+                }
+            }
+
+            if (!reply.isNullOrEmpty()) {
+                FirebaseManager.incrementSent(context)
+                Log.d(TAG, "✅ Gemini reply: $reply")
+                return reply
+            }
+
+            remainingRetries--
+            if (remainingRetries > 0) delay(1000L)
         }
-        Log.e(TAG, "❌ Semua API key limit/habis!")
+
+        Log.e(TAG, "❌ Maksimal retry habis")
         return null
     }
+
 }

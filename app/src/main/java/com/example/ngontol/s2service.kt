@@ -2,6 +2,7 @@ package com.example.ngontol
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Rect
 import android.os.Build
@@ -9,6 +10,7 @@ import android.os.Looper
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
+import android.view.inputmethod.InputMethodManager
 import androidx.annotation.RequiresApi
 import kotlinx.coroutines.*
 import java.io.File
@@ -199,6 +201,7 @@ object S2Service {
         return null
     }
 
+    @SuppressLint("ServiceCast")
     private suspend fun sendReply(service: AccessibilityService, input: AccessibilityNodeInfo, text: String) {
         val delayTime = if (text.length <= 30) (990..999).random().toLong() else (1370..1690).random().toLong()
 
@@ -215,6 +218,8 @@ object S2Service {
         Log.d(TAG, "⌨️ BotKeyboard commit: $text")
 
         delay(delayTime)
+// ⬇️ Tutup keyboard langsung setelah ngetik
+        input.performAction(AccessibilityNodeInfo.ACTION_CLEAR_FOCUS)
 
         val sendBtn = service.rootInActiveWindow
             ?.findAccessibilityNodeInfosByViewId(SUGO_ID_SEND)

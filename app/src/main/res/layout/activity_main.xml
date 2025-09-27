@@ -105,14 +105,16 @@
                     android:backgroundTint="#00FF66"
                     android:fontFamily="@font/jetbrains_mono"
                     android:hint="@string/aplikasi"
-                    android:focusable="true"
+                    android:focusable="false"
                     android:clickable="true"
+                    android:cursorVisible="false"
                     android:inputType="none"
                     android:minHeight="48dp"
                     android:textColor="#00FF66"
                     android:textColorHint="#AAAAAA"
                     android:textCursorDrawable="@drawable/cursor_drawable"
                     android:textSize="14sp" />
+
 
                 <!-- Grid Persona -->
                 <GridLayout

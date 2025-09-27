@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
@@ -11,6 +12,7 @@ import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityEvent
 import androidx.annotation.RequiresApi
+import androidx.core.os.postDelayed
 import kotlinx.coroutines.*
 import kotlinx.coroutines.time.delay
 import java.io.File
@@ -30,7 +32,7 @@ object S1Service {
     private const val SUGO_ID_SEND  = "com.voicemaker.android:id/id_send_btn"
     private const val SUGO_ID_DIAMOND = "com.voicemaker.android:id/contentView"
 
-    private const val CACHE_CLEAR_INTERVAL = 15 * 60 * 1000L // 15 menit
+    private const val CACHE_CLEAR_INTERVAL = 30 * 60 * 1000L // 30 menit
     private const val SWITCH_TAB_INTERVAL = 30 * 60 * 1000L
     private const val MAX_CACHE = 20
     private const val PREF_KEY  = "processed_keys"
@@ -42,7 +44,7 @@ object S1Service {
     private val processed = LinkedHashSet<String>()
     var isSwitchingTab = false // taruh ini di scope global atau class-level
     var isRefreshing = false // tambahan untuk cache refresh
-
+    var totalClicked = 0
     @RequiresApi(Build.VERSION_CODES.O)
     fun start(service: AccessibilityService, scope: CoroutineScope, isRunning: () -> Boolean) {
         // mulai diamond logger
@@ -59,73 +61,104 @@ object S1Service {
         isRunning: () -> Boolean
     ) {
         if (!isRunning()) return
-        val now = System.currentTimeMillis()
-        if (now - lastRun < interval) return
-        lastRun = now
+        val rootNode = service.rootInActiveWindow
 
+        val cancelBtn = rootNode
+            ?.findAccessibilityNodeInfosByViewId("com.voicemaker.android:id/tv_cancel")
+            ?.firstOrNull()
+            ?: rootNode
+                ?.findAccessibilityNodeInfosByViewId("com.voicemaker.android:id/id_close_dialog")
+                ?.firstOrNull()
+
+        if (cancelBtn != null) {
+            cancelBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+            Log.d("BotDebug", "Klik tombol cancel ✅")
+        }
         val root = service.rootInActiveWindow ?: return
-        val rows = root.findAccessibilityNodeInfosByViewId(SUGO_ID_LIST)
 
-        // ---------- Cache clear & pull-to-refresh ----------
+        val now = System.currentTimeMillis()
         if (now - lastCacheClear >= CACHE_CLEAR_INTERVAL) {
             processed.clear()
             service.getSharedPreferences("bot_cache", Context.MODE_PRIVATE).edit().clear().apply()
 
-            val scrollable = root.findAccessibilityNodeInfosByViewId("com.voicemaker.android:id/id_recycler_view")
-                ?.firstOrNull { it.isScrollable }
+            val pkg = "com.voicemaker.android"
 
-            if (scrollable != null) {
-                isRefreshing = true // mulai refresh
-                scrollable.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
-
-                // delay supaya UI sempat refresh
-                android.os.Handler(Looper.getMainLooper()).postDelayed({
-                    isRefreshing = false // refresh selesai, baru bisa proses chat
-                    lastCacheClear = System.currentTimeMillis()
-                }, 2500L) // bisa di-adjust sesuai kecepatan UI
-            } else {
-                lastCacheClear = now
+            // ---------- 1. Simpan tab asal ----------
+            var asalIndex: Int? = null
+            run {
+                val tabs = root.findAccessibilityNodeInfosByViewId("$pkg:id/id_conv_tab_all")
+                if (tabs.isNotEmpty()) {
+                    val parent = tabs[0].parent
+                    for (i in 0 until (parent?.childCount ?: 0)) {
+                        val child = parent?.getChild(i) ?: continue
+                        if (child.isSelected) {
+                            asalIndex = i
+                            Log.d("BotDebug", "Tab asal disimpan index=$asalIndex")
+                            break
+                        }
+                    }
+                } else {
+                    Log.d("BotDebug", "Tidak ada tab asal yang disimpan")
+                }
             }
 
-//
-//        // ---------- Tab switching ----------
-//        if (now - lastSwitchTab >= SWITCH_TAB_INTERVAL) {
-//            val tabs = root.findAccessibilityNodeInfosByViewId("com.voicemaker.android:id/id_conv_tab_all")
-//            if (tabs.isNotEmpty()) {
-//                val parent = tabs[0].parent
-//                var asalIndex: Int? = null
-//                var asalText: String? = null
-//                var followingNode: AccessibilityNodeInfo? = null
-//
-//                for (i in 0 until (parent?.childCount ?: 0)) {
-//                    val child = parent?.getChild(i) ?: continue
-//                    if (child.isSelected) {
-//                        asalIndex = i
-//                        asalText = child.text?.toString()
-//                    }
-//                    if (child.text?.toString()?.contains("Mengikuti") == true) {
-//                        followingNode = child
-//                    }
-//                }
-//
-//                if (asalIndex != null && asalText != "Mengikuti" && followingNode != null) {
-//                    isSwitchingTab = true // mulai switch tab
-//                    followingNode.performAction(AccessibilityNodeInfo.ACTION_CLICK)
-//
-//                    android.os.Handler(Looper.getMainLooper()).postDelayed({
-//                        val root2 = service.rootInActiveWindow ?: return@postDelayed
-//                        val tabs2 = root2.findAccessibilityNodeInfosByViewId("com.voicemaker.android:id/id_conv_tab_all")
-//                        if (tabs2.isNotEmpty()) {
-//                            val parent2 = tabs2[0].parent
-//                            val backNode = parent2?.getChild(asalIndex!!)
-//                            val ok = backNode?.performAction(AccessibilityNodeInfo.ACTION_CLICK) ?: false
-//                            Log.d(TAG, if (ok) "↩️ Balik ke '$asalText' ✅ Done" else "⚠️ Gagal balik ke tab asal")
-//                            isSwitchingTab = false // tab balik selesai, baru bisa proses chat
-//                        }
-//                    }, 1500L) // delay 1.5 detik
-//                }
-//            }
+            // ---------- 2. Close & reopen ----------
+            val pm = service.packageManager
+            val launchIntent = pm.getLaunchIntentForPackage(pkg)?.apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
 
+            if (launchIntent != null) {
+                service.startActivity(launchIntent)
+
+                // ---------- 3. Klik bottomtab conv ----------
+                var convClicked = false
+
+                android.os.Handler(Looper.getMainLooper()).postDelayed(object : Runnable {
+                    override fun run() {
+                        if (convClicked) return  // ✅ stop kalau sudah klik conv
+
+                        val root2 = service.rootInActiveWindow
+                        val closeBtn = root2?.findAccessibilityNodeInfosByViewId("$pkg:id/close")?.firstOrNull()
+                        if (closeBtn != null) {
+                            closeBtn.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            Log.d("BotDebug", "Klik tombol close ✅")
+                        }
+
+                        val convTab = root2?.findAccessibilityNodeInfosByViewId(
+                            "$pkg:id/id_main_bottomtab_conv"
+                        )?.firstOrNull()
+
+                        if (convTab != null) {
+                            convTab.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+                            convClicked = true  // ✅ tandain biar ga klik lagi
+                            Log.d("BotDebug", "Klik bottomtab conv ✅")
+
+                            // balik ke tab asal kalau ada
+                            if (asalIndex != null) {
+                                android.os.Handler(Looper.getMainLooper()).postDelayed({
+                                    val root3 = service.rootInActiveWindow
+                                    val tabs2 = root3?.findAccessibilityNodeInfosByViewId("$pkg:id/id_conv_tab_all")
+                                    if (!tabs2.isNullOrEmpty()) {
+                                        val parent2 = tabs2[0].parent
+                                        val backNode = parent2?.getChild(asalIndex!!)
+                                        if (backNode?.performAction(AccessibilityNodeInfo.ACTION_CLICK) == true) {
+                                            Log.d("BotDebug", "Balik ke tab asal index=$asalIndex ✅")
+                                        } else {
+                                            Log.d("BotDebug", "⚠️ Gagal balik ke tab asal index=$asalIndex")
+                                        }
+                                    }
+                                }, 2000L)
+                            }
+                        } else {
+                            Log.d("BotDebug", "Conv tab belum ketemu, retry...")
+                            android.os.Handler(Looper.getMainLooper()).postDelayed(this, 500L)
+                        }
+                    }
+                }, 2500L)
+
+            }
+            // telegram sender
             val text = getDiamondText(service)
             val todayString = SimpleDateFormat("EEEE dd/MM/yyyy", Locale("id", "ID")).format(Date())
             val persona = PersonaManager.getPersona(service)
@@ -147,14 +180,16 @@ object S1Service {
                         "💰 : Rp $idrFormatted\n\n" +
                         todayString
             }
-
+            lastCacheClear = now
             sendTelegramMessage(logLine)
-//            lastSwitchTab = now
-
         }
 
-        // ---------- Loop chat hanya kalau nggak sedang switch tab ----------
-//        if (isSwitchingTab) return // skip loop chat sementara tab balik
+        if (now - lastRun < interval) return
+        lastRun = now
+
+        val rows = root.findAccessibilityNodeInfosByViewId(SUGO_ID_LIST)
+        // ---------- Cache clear & pull-to-refresh ----------
+
         if (rows.isEmpty()) return
 
         // ---------- Proses unread chat (kode asli lo) ----------
@@ -220,7 +255,6 @@ object S1Service {
             interval = if (unreadOnScreen > 3) 4500L else 2500L
         }
     }
-
 
     private fun findUnreadCount(row: AccessibilityNodeInfo): Int {
 
@@ -376,7 +410,7 @@ object S1Service {
 
                         // ==== FILTER & CLEAN ====
                         var clean = ai
-                        // 1. Replace nama pengirim dengan "ganteng"
+                        // 1. Replace nama pengirim "
                         clean = clean.replace(
                             Regex("\\b${Regex.escape(name)}\\b", RegexOption.IGNORE_CASE)
                         ) {
@@ -393,7 +427,7 @@ object S1Service {
                         clean = clean.replace(namePattern, " ")
                         clean = clean.replace(":", " ")
                         clean = clean.replace("jadi penasaran", " ")
-                        clean = clean.replace("Hai", "iyh ")
+//                        clean = clean.replace("Hai", "iyh ")
                         clean = clean.replace("\uD83D\uDE1C", " ")
                         clean = clean.replace("\uD83D\uDE09", "\uD83E\uDD2D ")
                         clean = clean.replace("\uD83E\uDD2A", " ")
@@ -405,7 +439,7 @@ object S1Service {
                         val shithayo = listOf("hayo", "hayoo", "hayooo")
                         shithayo.forEach {
                             val pattern = Regex("\\b$it\\b", RegexOption.IGNORE_CASE)
-                            clean = clean.replace(pattern, "beb ")
+                            clean = clean.replace(pattern, "beb")
                         }
 
                         val forbidden = listOf(
@@ -452,7 +486,7 @@ object S1Service {
                 // 4. update history dan simpan (max 20)
                 history.add("$name: ${rawMsg.trim()}")
                 history.add("${persona.botName}: $replyText")
-                val trimmedHistory = history.takeLast(16)
+                val trimmedHistory = history.takeLast(20)
                 saveHistory(service, userId, trimmedHistory)
 
                 delay(100)

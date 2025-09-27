@@ -3,7 +3,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("com.google.gms.google-services") // ✅ ini penting
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -15,8 +15,8 @@ android {
         minSdk = 24
         //noinspection OldTargetApi
         targetSdk = 35
-        versionCode = 21
-        versionName = "21"
+        versionCode = 29
+        versionName = "29"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

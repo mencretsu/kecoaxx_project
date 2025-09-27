@@ -58,50 +58,6 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n", "UseKtx")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-
-        if (requestCode == 2001 && resultCode == RESULT_OK && data != null) {
-            val pm = packageManager
-            var packageName: String? = data.component?.packageName
-                ?: data.dataString
-                ?: (data.extras?.get("android.intent.extra.shortcut.INTENT") as? Intent)?.component?.packageName
-                ?: data.extras?.getString("android.intent.extra.PACKAGE_NAME")
-
-            if (packageName.isNullOrBlank()) {
-                toast("❌ Gagal ambil package dari picker")
-                Log.e("APP_PICKER", "data=$data, extras=${data.extras}")
-                return
-            }
-
-            // whitelist aplikasi yg didukung
-            val supportedPkgs = listOf(
-                "com.voicemaker.android",
-                "com.hwsj.club"
-            )
-
-            if (packageName !in supportedPkgs) {
-                toast("❌ Layanan belum tersedia untuk $packageName")
-                return
-            }
-
-            // ambil nama app asli
-            val appName: String = try {
-                val appInfo = pm.getApplicationInfo(packageName, 0)
-                pm.getApplicationLabel(appInfo).toString()
-            } catch (e: PackageManager.NameNotFoundException) {
-                packageName
-            }
-
-            // update EditText & SharedPreferences
-            b.etTargetName.setText(appName)
-            getSharedPreferences("bot_prefs", MODE_PRIVATE).edit().apply {
-                putString("last_app_name", appName)
-                putString("last_app_package", packageName)
-                apply()
-            }
-
-            toast("✅ Aplikasi dipilih: $appName ($packageName)")
-        }
-
     }
 
     @RequiresApi(Build.VERSION_CODES.P)
@@ -118,6 +74,12 @@ class MainActivity : AppCompatActivity() {
         }
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
+        val prefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
+        val lastAppName = prefs.getString("last_app_name", null)
+        if (!lastAppName.isNullOrBlank()) {
+            b.etTargetName.setText(lastAppName)
+        }
+
         b.btnConfig.setOnClickListener {
             if (b.panelForm.visibility == View.VISIBLE) {
                 b.panelForm.visibility = View.GONE
@@ -144,13 +106,10 @@ class MainActivity : AppCompatActivity() {
             isFocusable = false
             isClickable = true
             setOnClickListener {
-                val intent = Intent(Intent.ACTION_PICK_ACTIVITY)
-                val mainIntent = Intent(Intent.ACTION_MAIN, null)
-                mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
-                intent.putExtra(Intent.EXTRA_INTENT, mainIntent)
-                startActivityForResult(intent, 2001)
+                showAppPickerDialog()
             }
         }
+
 
         // 3. Listener Spinner
         b.spinnerPersona.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -282,7 +241,38 @@ class MainActivity : AppCompatActivity() {
         b.btnStart.isEnabled = personaOK
 
     }
-// update //---
+
+    // di MainActivity
+    private fun showAppPickerDialog() {
+        val supportedApps = listOf(
+            "Sugo" to "com.voicemaker.android",
+            "Timo" to "com.hwsj.club"
+        )
+
+        val appNames = supportedApps.map { it.first }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("Pilih Aplikasi")
+            .setItems(appNames) { _, which ->
+                val (appName, packageName) = supportedApps[which]
+
+                // update EditText
+                b.etTargetName.setText(appName)
+
+                // simpan ke SharedPreferences
+                getSharedPreferences("bot_prefs", MODE_PRIVATE).edit().apply {
+                    putString("last_app_name", appName)
+                    putString("last_app_package", packageName)
+                    apply()
+                }
+
+                toast("✅ Aplikasi dipilih: $appName ($packageName)")
+            }
+            .setNegativeButton("Batal", null)
+            .show()
+    }
+
+    // update //---
     private fun checkUpdate() {
         val db = FirebaseDatabase.getInstance(
             "https://kecoaxx-db898-default-rtdb.asia-southeast1.firebasedatabase.app"
@@ -407,7 +397,6 @@ class MainActivity : AppCompatActivity() {
     private fun isServiceEnabled(): Boolean {
         val am = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
         val list = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC)
-
         return list.any { it.resolveInfo.serviceInfo.packageName == packageName }
     }
     // Presisi: cek flag yang di-set oleh MyBotService
