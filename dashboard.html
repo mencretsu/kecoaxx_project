@@ -64,6 +64,11 @@ th.sortable { cursor:pointer; }
     </tbody>
   </table>
 </div>
+<div style="margin-top:20px;">
+  <canvas id="sentChart" height="200"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
@@ -162,6 +167,49 @@ onValue(apiKeysRef, snapshot => {
       totalOk++;
     }
   });
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const sentHistoryRef = ref(db, "sentHistory");
+const ctx = document.getElementById("sentChart").getContext("2d");
+let sentChart = null;
+
+onValue(sentHistoryRef, snapshot => {
+  const labels = [];
+  const dataPoints = [];
+
+  snapshot.forEach(child => {
+    labels.push(child.key); // tanggal YYYY-MM-DD
+    dataPoints.push(child.val().totalSent ?? 0);
+  });
+
+  // Hapus chart lama kalau ada
+  if (sentChart) sentChart.destroy();
+
+  sentChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Total Sent Harian",
+        data: dataPoints,
+        fill: true,
+        borderColor: "#90caf9",
+        backgroundColor: "rgba(144,202,249,0.2)",
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { labels: { color: "#fff" } }
+      },
+      scales: {
+        x: { ticks: { color: "#fff" } },
+        y: { ticks: { color: "#fff" }, beginAtZero: true }
+      }
+    }
+  });
+});
 
   statApiLimit.textContent = totalLimit;
   statApiOk.textContent = totalOk;
@@ -186,6 +234,8 @@ document.querySelector("th.sortable").addEventListener("click", () => {
   sortSentAsc = !sortSentAsc;
   renderTable();
 });
+
+
 </script>
 
 </body>
