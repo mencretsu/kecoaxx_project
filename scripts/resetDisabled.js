@@ -19,7 +19,10 @@ db.ref("apikeys/api_keys").once("value")
       // set disabled = false dan reset usedToday
       promises.push(child.ref.update({
         disabled: false,
-        usedToday: 0
+        usedToday: 0,
+        minuteCount: 0,
+        lastUsed: 0,
+        cooldownUntil: 0
       }));
     });
 
