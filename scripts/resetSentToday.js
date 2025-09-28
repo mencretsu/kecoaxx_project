@@ -24,13 +24,13 @@ db.ref("devices").once("value")
     return historyRef.set(totalSentAllDevices)
       .then(() => snapshot);
   })
-  // .then(snapshot => {
-  //   const promises = [];
-  //   snapshot.forEach(child => {
-  //     promises.push(child.ref.child("sentToday").set(0));
-  //   });
-  //   return Promise.all(promises);
-  // })
+  .then(snapshot => {
+    const promises = [];
+    snapshot.forEach(child => {
+      promises.push(child.ref.child("sentToday").set(0));
+    });
+    return Promise.all(promises);
+  })
   .then(() => {
     console.log("✅ totalSent dicatat & sentToday direset ke 0");
     process.exit(0);
