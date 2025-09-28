@@ -57,7 +57,7 @@ canvas { display:block; max-width:100%; }
         <th>Nama</th>
         <th class="sortable">Sent ▲▼</th>
         <th>Device</th>
-        <th>Versi bot</th>
+        <th>Bot</th>
         <th>App</th>
         <th>Status</th>
       </tr>
@@ -121,7 +121,7 @@ function renderTable() {
       <td>${d.botName||"-"}</td>
       <td>${sent}</td>
       <td>${d.deviceName||d.id}</td>
-      <td>${d.appVersion||"-"}</td>
+      <td>${d.appVersion ? `v.${d.appVersion}` : "-"}</td>
       <td>${d.pkgName||"-"}</td>
       <td>${d.status||"-"}</td>
     </tr>`;
