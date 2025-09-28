@@ -21,7 +21,7 @@ th.sortable { cursor:pointer; }
 .stats { display:flex; gap:16px; margin-bottom:10px; flex-wrap:wrap; }
 .stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
 .stat-box span { font-weight:bold; color:#90caf9; }
-canvas { display:block; }
+canvas { display:block; max-width:100%; }
 #resetZoom { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
 </style>
 </head>
@@ -68,7 +68,7 @@ canvas { display:block; }
 </div>
 
 <div style="overflow-x:auto;">
-  <canvas id="sentChart" height="200" style="width:100%; max-width:1000px;"></canvas>
+  <canvas id="sentChart" height="200"></canvas>
 </div>
 <button id="resetZoom">Reset Zoom</button>
 
@@ -96,93 +96,76 @@ const devicesRef = ref(db, "devices");
 const apiKeysRef = ref(db, "apikeys/api_keys");
 const sentHistoryRef = ref(db, "sentHistory");
 
-// DOM elements
+// DOM
 const searchName = document.getElementById("searchName");
 const timeRange = document.getElementById("timeRange");
 const limit = document.getElementById("limit");
 const table = document.getElementById("devices-table");
-
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
 const statApiLimit = document.getElementById("stat-api-limit");
 const statApiOk = document.getElementById("stat-api-ok");
 const statApiTotal = document.getElementById("stat-api-total");
 
-// Chart.js
-const ctx = document.getElementById("sentChart").getContext("2d");
-let sentChart = null;
-
-// Render table function
+// Table
 let devicesData = [];
 let sortSentAsc = true;
 function renderTable() {
-  table.innerHTML = "";
+  table.innerHTML="";
   let filtered = devicesData.filter(d => (d.botName||"").toLowerCase().includes(searchName.value.toLowerCase()));
-  let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
-
-  filtered.slice(0, lim).forEach(d => {
-    let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-    table.innerHTML += `
-      <tr>
-        <td>${d.botName||"-"}</td>
-        <td>${sent}</td>
-        <td>${d.deviceName||d.id}</td>
-        <td>${d.appVersion||"-"}</td>
-        <td>${d.status||"-"}</td>
-      </tr>
-    `;
+  let lim = limit.value==="all"? filtered.length : parseInt(limit.value);
+  filtered.slice(0,lim).forEach(d=>{
+    let sent = timeRange.value==="today"? (d.sentToday??0):(d.totalSent??0);
+    table.innerHTML+=`<tr>
+      <td>${d.botName||"-"}</td>
+      <td>${sent}</td>
+      <td>${d.deviceName||d.id}</td>
+      <td>${d.appVersion||"-"}</td>
+      <td>${d.status||"-"}</td>
+    </tr>`;
   });
-  if(filtered.length===0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
+  if(filtered.length===0) table.innerHTML=`<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
 }
 
-// Fetch devices
-onValue(devicesRef, snapshot => {
-  devicesData = [];
-  let totalSent = 0;
-  let activeCount = 0;
-  snapshot.forEach(child => {
-    const data = child.val();
-    data.id = child.key;
-    const sent = timeRange.value === "today" ? (data.sentToday ?? 0) : (data.totalSent ?? 0);
-    if(sent>0) activeCount++;
-    totalSent += sent;
-    devicesData.push(data);
-  });
-  statActive.textContent = activeCount;
-  statSent.textContent = totalSent;
-  renderTable();
-}, err => { console.error("❌ Error ambil devices:", err); table.innerHTML = `<tr><td colspan="5" class="empty">Error ambil data</td></tr>`; });
-
-// Fetch API keys
-onValue(apiKeysRef, snapshot => {
-  let totalApi=0, totalLimit=0, totalOk=0;
-  const now = Date.now();
+// Devices
+onValue(devicesRef,snapshot=>{
+  devicesData=[];
+  let totalSent=0, activeCount=0;
   snapshot.forEach(child=>{
-    const data = child.val();
-    totalApi++;
-    if(data.disabled || (data.cooldownUntil && data.cooldownUntil>now)) totalLimit++;
-    else totalOk++;
+    const d=child.val(); d.id=child.key;
+    const sent=timeRange.value==="today"? (d.sentToday??0):(d.totalSent??0);
+    if(sent>0) activeCount++; totalSent+=sent;
+    devicesData.push(d);
+  });
+  statActive.textContent=activeCount;
+  statSent.textContent=totalSent;
+  renderTable();
+},err=>{console.error("Error devices:",err); table.innerHTML=`<tr><td colspan="5" class="empty">Error ambil data</td></tr>`});
+
+// API keys
+onValue(apiKeysRef,snapshot=>{
+  let totalApi=0, totalLimit=0, totalOk=0; const now=Date.now();
+  snapshot.forEach(child=>{
+    const d=child.val(); totalApi++;
+    if(d.disabled||(d.cooldownUntil&&d.cooldownUntil>now)) totalLimit++; else totalOk++;
   });
   statApiLimit.textContent=totalLimit;
   statApiOk.textContent=totalOk;
   statApiTotal.textContent=totalApi;
-}, err=>{ console.error("❌ Error ambil API keys:", err); statApiLimit.textContent="-"; statApiOk.textContent="-"; statApiTotal.textContent="-"; });
+},err=>{ console.error("Error API:",err); statApiLimit.textContent="-"; statApiOk.textContent="-"; statApiTotal.textContent="-"; });
 
-// Chart - last 7 days
-onValue(sentHistoryRef, snapshot=>{
-  const daysToShow = 7;
+// Chart
+const ctx = document.getElementById("sentChart").getContext("2d");
+let sentChart=null;
+onValue(sentHistoryRef,snapshot=>{
   const allDates=[];
-  snapshot.forEach(child=>{
-    allDates.push({date:child.key, total:child.val().totalSent ?? 0});
-  });
-  const lastDays = allDates.slice(-daysToShow);
-  const labels = lastDays.map(d=>d.date);
-  const dataPoints = lastDays.map(d=>d.total);
-
+  snapshot.forEach(child=>{ allDates.push({date:child.key,total:child.val().totalSent??0}); });
+  const labels=allDates.map(d=>d.date);
+  const dataPoints=allDates.map(d=>d.total);
   if(sentChart) sentChart.destroy();
-  sentChart = new Chart(ctx,{
+  sentChart=new Chart(ctx,{
     type:'line',
-    data:{labels, datasets:[{
+    data:{labels,datasets:[{
       label:"Total Sent Harian",
       data:dataPoints,
       fill:true,
@@ -194,35 +177,33 @@ onValue(sentHistoryRef, snapshot=>{
     }]},
     options:{
       responsive:true,
-      maintainAspectRatio:false,
       plugins:{
         legend:{labels:{color:"#fff"}},
-        tooltip:{mode:'index', intersect:false},
-        zoom:{pan:{enabled:true,mode:'x'}, zoom:{wheel:{enabled:true}, pinch:{enabled:true}, mode:'x'}}
+        tooltip:{mode:'index',intersect:false},
+        zoom:{
+          pan:{enabled:true,mode:'x'},
+          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x',onDoubleClick:chart=>{chart.resetZoom();}}
+        }
       },
-      interaction:{mode:'nearest', axis:'x', intersect:false},
-      scales:{x:{ticks:{color:"#fff"}}, y:{ticks:{color:"#fff"}, beginAtZero:true}}
+      interaction:{mode:'nearest',axis:'x',intersect:false},
+      scales:{x:{ticks:{color:"#fff"}},y:{ticks:{color:"#fff"},beginAtZero:true}}
     }
   });
 });
 
-// Reset zoom
-document.getElementById("resetZoom").addEventListener("click", ()=>{
-  if(sentChart) sentChart.resetZoom();
-});
+// Reset zoom button
+document.getElementById("resetZoom").addEventListener("click",()=>{if(sentChart) sentChart.resetZoom();});
 
-// Filters / search / sort
-[searchName, timeRange, limit].forEach(el=>el.addEventListener("input", renderTable));
-document.querySelector("th.sortable").addEventListener("click", ()=>{
+// Filters / sort
+[searchName,timeRange,limit].forEach(el=>el.addEventListener("input",renderTable));
+document.querySelector("th.sortable").addEventListener("click",()=>{
   devicesData.sort((a,b)=>{
-    const valA = timeRange.value==='today'? (a.sentToday??0) : (a.totalSent??0);
-    const valB = timeRange.value==='today'? (b.sentToday??0) : (b.totalSent??0);
+    const valA = timeRange.value==="today"? (a.sentToday??0):(a.totalSent??0);
+    const valB = timeRange.value==="today"? (b.sentToday??0):(b.totalSent??0);
     return sortSentAsc? valB-valA : valA-valB;
   });
-  sortSentAsc=!sortSentAsc;
-  renderTable();
+  sortSentAsc=!sortSentAsc; renderTable();
 });
 </script>
-
 </body>
 </html>
