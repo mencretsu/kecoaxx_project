@@ -64,9 +64,100 @@ th.sortable { cursor:pointer; }
     </tbody>
   </table>
 </div>
-<div style="overflow-x:auto;">
-  <canvas id="sentChart" height="200"></canvas>
+<div style="overflow-x:auto; margin-top:20px;">
+  <canvas id="sentChart" height="200" style="min-width:700px;"></canvas>
 </div>
+<button id="resetZoom" style="margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer;">Reset Zoom</button>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBWrIDwTn4Byd9gZdYeGtwVUe0q2f2KYT4",
+  authDomain: "kecoaxx-db898.firebaseapp.com",
+  databaseURL: "https://kecoaxx-db898-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "kecoaxx-db898",
+  storageBucket: "kecoaxx-db898.firebasestorage.app",
+  messagingSenderId: "929070876762",
+  appId: "1:929070876762:web:696c8699f91e8022cc7063"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const sentHistoryRef = ref(db, "sentHistory");
+
+const ctx = document.getElementById("sentChart").getContext("2d");
+let sentChart = null;
+
+onValue(sentHistoryRef, snapshot => {
+  const labels = [];
+  const dataPoints = [];
+
+  snapshot.forEach(child => {
+    labels.push(child.key); // tanggal YYYY-MM-DD
+    dataPoints.push(child.val().totalSent ?? 0);
+  });
+
+  if (sentChart) sentChart.destroy();
+
+  sentChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Total Sent Harian",
+        data: dataPoints,
+        fill: true,
+        borderColor: "#90caf9",
+        backgroundColor: "rgba(144,202,249,0.2)",
+        tension: 0.3,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { 
+        legend: { labels: { color: "#fff" } },
+        tooltip: {
+          mode: 'index',
+          intersect: false
+        },
+        zoom: {
+          pan: {
+            enabled: true,
+            mode: 'x'
+          },
+          zoom: {
+            wheel: { enabled: true },
+            pinch: { enabled: true },
+            mode: 'x'
+          }
+        }
+      },
+      interaction: {
+        mode: 'nearest',
+        axis: 'x',
+        intersect: false
+      },
+      scales: {
+        x: { ticks: { color: "#fff" } },
+        y: { ticks: { color: "#fff" }, beginAtZero: true }
+      }
+    }
+  });
+});
+
+// Reset zoom button
+document.getElementById("resetZoom").addEventListener("click", () => {
+  if(sentChart) sentChart.resetZoom();
+});
+</script>
+
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
