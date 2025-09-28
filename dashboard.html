@@ -74,6 +74,7 @@ th.sortable { cursor:pointer; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBWrIDwTn4Byd9gZdYeGtwVUe0q2f2KYT4",
   authDomain: "kecoaxx-db898.firebaseapp.com",
@@ -88,7 +89,9 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
 const apiKeysRef = ref(db, "apikeys/api_keys");
+const sentHistoryRef = ref(db, "sentHistory");
 
+// DOM elements
 const searchName = document.getElementById("searchName");
 const timeRange = document.getElementById("timeRange");
 const limit = document.getElementById("limit");
@@ -103,9 +106,9 @@ const statApiTotal = document.getElementById("stat-api-total");
 let devicesData = [];
 let sortSentAsc = true;
 
+// Render table
 function renderTable() {
   table.innerHTML = "";
-
   let filtered = devicesData.filter(d => (d.botName||"").toLowerCase().includes(searchName.value.toLowerCase()));
   let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
 
@@ -126,6 +129,7 @@ function renderTable() {
   if(filtered.length === 0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
 }
 
+// Devices data
 onValue(devicesRef, snapshot => {
   devicesData = [];
   let totalSent = 0;
@@ -136,10 +140,8 @@ onValue(devicesRef, snapshot => {
     data.id = child.key;
 
     const sent = timeRange.value === "today" ? (data.sentToday ?? 0) : (data.totalSent ?? 0);
-    if (sent > 0) { // aktif
-      activeCount++;
-      totalSent += sent;
-    }
+    if (sent > 0) activeCount++;
+    totalSent += sent;
 
     devicesData.push(data);
   });
@@ -152,24 +154,29 @@ onValue(devicesRef, snapshot => {
   table.innerHTML = `<tr><td colspan="5" class="empty">Error ambil data</td></tr>`;
 });
 
+// API keys stats
 onValue(apiKeysRef, snapshot => {
-  let totalApi = 0;
-  let totalLimit = 0;
-  let totalOk = 0;
+  let totalApi = 0, totalLimit = 0, totalOk = 0;
   const now = Date.now();
 
   snapshot.forEach(child => {
     const data = child.val();
     totalApi++;
-    if (data.disabled || (data.cooldownUntil && data.cooldownUntil > now)) {
-      totalLimit++;
-    } else {
-      totalOk++;
-    }
+    if (data.disabled || (data.cooldownUntil && data.cooldownUntil > now)) totalLimit++;
+    else totalOk++;
   });
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
-const sentHistoryRef = ref(db, "sentHistory");
+  statApiLimit.textContent = totalLimit;
+  statApiOk.textContent = totalOk;
+  statApiTotal.textContent = totalApi;
+}, err => {
+  console.error("❌ Error ambil API keys:", err);
+  statApiLimit.textContent = "-";
+  statApiOk.textContent = "-";
+  statApiTotal.textContent = "-";
+});
+
+// Chart.js - Sent history
 const ctx = document.getElementById("sentChart").getContext("2d");
 let sentChart = null;
 
@@ -182,7 +189,6 @@ onValue(sentHistoryRef, snapshot => {
     dataPoints.push(child.val().totalSent ?? 0);
   });
 
-  // Hapus chart lama kalau ada
   if (sentChart) sentChart.destroy();
 
   sentChart = new Chart(ctx, {
@@ -200,30 +206,18 @@ onValue(sentHistoryRef, snapshot => {
     },
     options: {
       responsive: true,
-      plugins: {
-        legend: { labels: { color: "#fff" } }
-      },
+      plugins: { legend: { labels: { color: "#fff" } } },
       scales: {
         x: { ticks: { color: "#fff" } },
         y: { ticks: { color: "#fff" }, beginAtZero: true }
       }
     }
   });
-
-  statApiLimit.textContent = totalLimit;
-  statApiOk.textContent = totalOk;
-  statApiTotal.textContent = totalApi;
-}, err => {
-  console.error("❌ Error ambil API keys:", err);
-  statApiLimit.textContent = "-";
-  statApiOk.textContent = "-";
-  statApiTotal.textContent = "-";
 });
 
-// Search / filter / limit
+// Filters / search / sort
 [searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
 
-// Sort Sent column
 document.querySelector("th.sortable").addEventListener("click", () => {
   devicesData.sort((a,b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
@@ -233,8 +227,6 @@ document.querySelector("th.sortable").addEventListener("click", () => {
   sortSentAsc = !sortSentAsc;
   renderTable();
 });
-
-
 </script>
 
 </body>
