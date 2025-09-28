@@ -17,7 +17,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
+          
+      - name: Install deps
+        run: npm install firebase-admin
+        
       - name: Create service account file
         run: echo "$FIREBASE_SA_B64" | base64 --decode | tr -d '\r' > sa.json
         env:
