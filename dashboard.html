@@ -66,7 +66,7 @@ canvas { display:block; max-width:100%; }
     </tbody>
   </table>
 </div>
-
+<br><br>-- Stats --
 <div style="overflow-x:auto;">
   <canvas id="sentChart" height="200"></canvas>
 </div>
@@ -166,7 +166,7 @@ onValue(sentHistoryRef,snapshot=>{
   sentChart=new Chart(ctx,{
     type:'line',
     data:{labels,datasets:[{
-      label:"Total Sent Harian",
+      label:"History",
       data:dataPoints,
       fill:true,
       borderColor:"#90caf9",
