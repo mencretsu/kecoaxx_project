@@ -65,9 +65,8 @@ th.sortable { cursor:pointer; }
   </table>
 </div>
 <div style="overflow-x:auto;">
-  <canvas id="sentChart" height="200" style="min-width:700px;"></canvas>
+  <canvas id="sentChart" height="200"></canvas>
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
@@ -183,52 +182,43 @@ const ctx = document.getElementById("sentChart").getContext("2d");
 let sentChart = null;
 
 onValue(sentHistoryRef, snapshot => {
-  const labels = [];
-  const dataPoints = [];
-
+  const daysToShow = 7; // 1 minggu terakhir
+  const allDates = [];
   snapshot.forEach(child => {
-    labels.push(child.key); // tanggal YYYY-MM-DD
-    dataPoints.push(child.val().totalSent ?? 0);
+    allDates.push({ date: child.key, total: child.val().totalSent ?? 0 });
   });
+  const lastDays = allDates.slice(-daysToShow);
+  const labels = lastDays.map(d => d.date);
+  const dataPoints = lastDays.map(d => d.total);
 
   if (sentChart) sentChart.destroy();
-
   sentChart = new Chart(ctx, {
     type: "line",
-    data: {
-      labels,
-      datasets: [{
-        label: "Total Sent Harian",
-        data: dataPoints,
-        fill: true,
-        borderColor: "#90caf9",
-        backgroundColor: "rgba(144,202,249,0.2)",
-        tension: 0.3
-      }]
-    },
+    data: { labels, datasets:[{
+      label: "Total Sent Harian",
+      data: dataPoints,
+      fill: true,
+      borderColor: "#90caf9",
+      backgroundColor: "rgba(144,202,249,0.2)",
+      tension:0.3
+    }]},
     options: {
       responsive: true,
-      plugins: { 
-        legend: { labels: { color: "#fff" } },
-        zoom: {   // <-- ini tambahan
-          pan: {
-            enabled: true,
-            mode: 'x', // cuma horizontal
-          },
-          zoom: {
-            wheel: { enabled: true },
-            pinch: { enabled: true },
-            mode: 'x', // cuma horizontal
-          }
+      plugins: {
+        legend:{ labels:{ color:"#fff" }},
+        zoom:{
+          pan:{ enabled:true, mode:'x' },
+          zoom:{ wheel:{enabled:true}, pinch:{enabled:true}, mode:'x' }
         }
       },
-      scales: {
-        x: { ticks: { color: "#fff" } },
-        y: { ticks: { color: "#fff" }, beginAtZero: true }
+      scales:{
+        x:{ ticks:{ color:"#fff" }},
+        y:{ ticks:{ color:"#fff" }, beginAtZero:true }
       }
     }
   });
 });
+
 
 // Filters / search / sort
 [searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
