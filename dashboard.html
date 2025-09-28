@@ -8,7 +8,7 @@
 body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:10px; }
 h1 { text-align:center; margin:10px 0 18px 0; font-size:1.4rem; color:#fff; }
 .table-container { overflow-x:auto; margin-bottom:10px; }
-table { width:100%; min-width:400px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
+table { width:100%; min-width:350px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
 thead { background:#272727; }
 th, td { padding:6px 10px; text-align:left; cursor:default; }
 th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; }
@@ -58,6 +58,7 @@ canvas { display:block; max-width:100%; }
         <th class="sortable">Sent ▲▼</th>
         <th>Device</th>
         <th>Versi bot</th>
+        <th>App</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -121,10 +122,11 @@ function renderTable() {
       <td>${sent}</td>
       <td>${d.deviceName||d.id}</td>
       <td>${d.appVersion||"-"}</td>
+      <td>${d.pkgName||"-"}</td>
       <td>${d.status||"-"}</td>
     </tr>`;
   });
-  if(filtered.length===0) table.innerHTML=`<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
+  if(filtered.length===0) table.innerHTML=`<tr><td colspan="6" class="empty">Tidak ada data</td></tr>`;
 }
 
 // Devices
