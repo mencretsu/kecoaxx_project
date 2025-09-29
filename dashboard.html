@@ -75,10 +75,9 @@ canvas { display:block; max-width:100%; }
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
-
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
 // Firebase config
 const firebaseConfig = {
@@ -112,100 +111,141 @@ const statApiTotal = document.getElementById("stat-api-total");
 let devicesData = [];
 let sortSentAsc = true;
 function renderTable() {
-  table.innerHTML="";
-  let filtered = devicesData.filter(d => (d.botName||"").toLowerCase().includes(searchName.value.toLowerCase()));
-  let lim = limit.value==="all"? filtered.length : parseInt(limit.value);
-  filtered.slice(0,lim).forEach(d=>{
-    let sent = timeRange.value==="today"? (d.sentToday??0):(d.totalSent??0);
-    table.innerHTML+=`<tr>
-      <td>${d.botName||"-"}</td>
+  table.innerHTML = "";
+  let filtered = devicesData.filter(d => (d.botName || "").toLowerCase().includes(searchName.value.toLowerCase()));
+  let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
+  filtered.slice(0, lim).forEach(d => {
+    let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
+    table.innerHTML += `<tr>
+      <td>${d.botName || "-"}</td>
       <td>${sent}</td>
-      <td>${d.deviceName||d.id}</td>
+      <td>${d.deviceName || d.id}</td>
       <td>${d.appVersion ? `v.${d.appVersion}` : "-"}</td>
-      <td>${d.pkgName||"-"}</td>
-      <td>${d.status||"-"}</td>
+      <td>${d.pkgName || "-"}</td>
+      <td>${d.status || "-"}</td>
     </tr>`;
   });
-  if(filtered.length===0) table.innerHTML=`<tr><td colspan="6" class="empty">Tidak ada data</td></tr>`;
+  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="6" class="empty">Tidak ada data</td></tr>`;
 }
 
-// Devices
-onValue(devicesRef,snapshot=>{
-  devicesData=[];
-  let totalSent=0, activeCount=0;
-  snapshot.forEach(child=>{
-    const d=child.val(); d.id=child.key;
-    const sent=timeRange.value==="today"? (d.sentToday??0):(d.totalSent??0);
-    if(sent>0) activeCount++; totalSent+=sent;
-    devicesData.push(d);
-  });
-  statActive.textContent=activeCount;
-  statSent.textContent=totalSent;
-  renderTable();
-},err=>{console.error("Error devices:",err); table.innerHTML=`<tr><td colspan="5" class="empty">Error ambil data</td></tr>`});
+// Fetch functions
+async function fetchDevices() {
+  try {
+    const snapshot = await get(devicesRef);
+    devicesData = [];
+    let totalSent = 0, activeCount = 0;
+    snapshot.forEach(child => {
+      const d = child.val(); d.id = child.key;
+      const sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
+      if (sent > 0) activeCount++;
+      totalSent += sent;
+      devicesData.push(d);
+    });
+    statActive.textContent = activeCount;
+    statSent.textContent = totalSent;
+    renderTable();
+  } catch (err) {
+    console.error("Error devices:", err);
+    table.innerHTML = `<tr><td colspan="5" class="empty">Error ambil data</td></tr>`;
+  }
+}
 
-// API keys
-onValue(apiKeysRef,snapshot=>{
-  let totalApi=0, totalLimit=0, totalOk=0; const now=Date.now();
-  snapshot.forEach(child=>{
-    const d=child.val(); totalApi++;
-    if(d.disabled||(d.cooldownUntil&&d.cooldownUntil>now)) totalLimit++; else totalOk++;
-  });
-  statApiLimit.textContent=totalLimit;
-  statApiOk.textContent=totalOk;
-  statApiTotal.textContent=totalApi;
-},err=>{ console.error("Error API:",err); statApiLimit.textContent="-"; statApiOk.textContent="-"; statApiTotal.textContent="-"; });
+async function fetchApiKeys() {
+  try {
+    const snapshot = await get(apiKeysRef);
+    let totalApi = 0, totalLimit = 0, totalOk = 0; const now = Date.now();
+    snapshot.forEach(child => {
+      const d = child.val(); totalApi++;
+      if (d.disabled || (d.cooldownUntil && d.cooldownUntil > now)) totalLimit++; else totalOk++;
+    });
+    statApiLimit.textContent = totalLimit;
+    statApiOk.textContent = totalOk;
+    statApiTotal.textContent = totalApi;
+  } catch (err) {
+    console.error("Error API:", err);
+    statApiLimit.textContent = "-";
+    statApiOk.textContent = "-";
+    statApiTotal.textContent = "-";
+  }
+}
 
-// Chart
 const ctx = document.getElementById("sentChart").getContext("2d");
-let sentChart=null;
-onValue(sentHistoryRef,snapshot=>{
-  const allDates=[];
-  snapshot.forEach(child=>{ allDates.push({date:child.key,total:child.val().totalSent??0}); });
-  const labels=allDates.map(d=>d.date);
-  const dataPoints=allDates.map(d=>d.total);
-  if(sentChart) sentChart.destroy();
-  sentChart=new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets:[{
-      label:"History",
-      data:dataPoints,
-      fill:true,
-      borderColor:"#90caf9",
-      backgroundColor:"rgba(144,202,249,0.2)",
-      tension:0.3,
-      pointRadius:4,
-      pointHoverRadius:6
-    }]},
-    options:{
-      responsive:true,
-      plugins:{
-        legend:{labels:{color:"#fff"}},
-        tooltip:{mode:'index',intersect:false},
-        zoom:{
-          pan:{enabled:true,mode:'x'},
-          zoom:{wheel:{enabled:true},pinch:{enabled:true},mode:'x',onDoubleClick:chart=>{chart.resetZoom();}}
-        }
+let sentChart = null;
+async function fetchSentHistory() {
+  try {
+    const snapshot = await get(sentHistoryRef);
+    const allDates = [];
+    snapshot.forEach(child => { allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); });
+    const labels = allDates.map(d => d.date);
+    const dataPoints = allDates.map(d => d.total);
+    if (sentChart) sentChart.destroy();
+    sentChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: "History",
+          data: dataPoints,
+          fill: true,
+          borderColor: "#90caf9",
+          backgroundColor: "rgba(144,202,249,0.2)",
+          tension: 0.3,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }]
       },
-      interaction:{mode:'nearest',axis:'x',intersect:false},
-      scales:{x:{ticks:{color:"#fff"}},y:{ticks:{color:"#fff"},beginAtZero:true}}
-    }
-  });
-});
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: "#fff" } },
+          tooltip: { mode: 'index', intersect: false },
+          zoom: {
+            pan: { enabled: true, mode: 'x' },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+          }
+        },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        scales: { x: { ticks: { color: "#fff" } }, y: { ticks: { color: "#fff" }, beginAtZero: true } }
+      }
+    });
+  } catch (err) {
+    console.error("Error history:", err);
+  }
+}
 
+// Auto refresh setiap 30 detik
+async function refreshAll() {
+  await fetchDevices();
+  await fetchApiKeys();
+  await fetchSentHistory();
+}
+refreshAll();
+setInterval(refreshAll, 60000);
+// Pause interval kalau tab nggak aktif
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    clearInterval(intervalId); // stop refresh
+    console.log("Tab ga aktif, refresh dihentikan");
+  } else {
+    intervalId = setInterval(refreshAll, 30000); // mulai lagi
+    refreshAll(); // langsung update pas balik aktif
+    console.log("Tab aktif, refresh dimulai lagi");
+  }
+});
 // Reset zoom button
-document.getElementById("resetZoom").addEventListener("click",()=>{if(sentChart) sentChart.resetZoom();});
+document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
 
 // Filters / sort
-[searchName,timeRange,limit].forEach(el=>el.addEventListener("input",renderTable));
-document.querySelector("th.sortable").addEventListener("click",()=>{
-  devicesData.sort((a,b)=>{
-    const valA = timeRange.value==="today"? (a.sentToday??0):(a.totalSent??0);
-    const valB = timeRange.value==="today"? (b.sentToday??0):(b.totalSent??0);
-    return sortSentAsc? valB-valA : valA-valB;
+[searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
+document.querySelector("th.sortable").addEventListener("click", () => {
+  devicesData.sort((a, b) => {
+    const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
+    const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
+    return sortSentAsc ? valB - valA : valA - valB;
   });
-  sortSentAsc=!sortSentAsc; renderTable();
+  sortSentAsc = !sortSentAsc; renderTable();
 });
 </script>
+
 </body>
 </html>
