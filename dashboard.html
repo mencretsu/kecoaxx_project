@@ -148,18 +148,22 @@ async function fetchDevices() {
     table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
   }
 }
-
 // Fetch Sent History
 const ctx = document.getElementById("sentChart").getContext("2d");
 let sentChart = null;
+
 async function fetchSentHistory() {
   try {
     const snapshot = await get(sentHistoryRef);
     const allDates = [];
-    snapshot.forEach(child => { allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); });
+    snapshot.forEach(child => { 
+      allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); 
+    });
     const labels = allDates.map(d => d.date);
     const dataPoints = allDates.map(d => d.total);
+
     if (sentChart) sentChart.destroy();
+
     sentChart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -171,28 +175,47 @@ async function fetchSentHistory() {
           borderColor: "#90caf9",
           backgroundColor: "rgba(144,202,249,0.2)",
           tension: 0.3,
-          pointRadius: 4,
-          pointHoverRadius: 6
+          pointRadius: 3,
+          pointHoverRadius: 5
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false, // supaya responsive container
         plugins: {
           legend: { labels: { color: "#fff" } },
           tooltip: { mode: 'index', intersect: false },
           zoom: {
-            pan: { enabled: true, mode: 'x' },
-            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' }
+            pan: { enabled: true, mode: 'x', overScaleMode: 'x' },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x',
+              limits: {
+                x: { min: 0, max: labels.length - 1 },
+                y: { min: 0 }
+              }
+            }
           }
         },
         interaction: { mode: 'nearest', axis: 'x', intersect: false },
-        scales: { x: { ticks: { color: "#fff" } }, y: { ticks: { color: "#fff" }, beginAtZero: true } }
+        scales: {
+          x: { 
+            ticks: { color: "#fff", maxRotation: 0, autoSkip: true }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
+          },
+          y: { 
+            ticks: { color: "#fff", beginAtZero: true }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
+          }
+        }
       }
     });
   } catch (err) {
     console.error("Error history:", err);
   }
 }
+
 
 // Manual refresh
 async function refreshAll() {
