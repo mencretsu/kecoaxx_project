@@ -32,9 +32,6 @@ canvas { display:block; max-width:100%; }
 <div class="stats">
   <div class="stat-box">Active Devices: <span id="stat-active">0</span></div>
   <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
-  <div class="stat-box">API Limit: <span id="stat-api-limit">0</span></div>
-  <div class="stat-box">API Available: <span id="stat-api-ok">0</span></div>
-  <div class="stat-box">Total API: <span id="stat-api-total">0</span></div>
 </div>
 
 <div class="filters">
@@ -64,10 +61,11 @@ canvas { display:block; max-width:100%; }
       </tr>
     </thead>
     <tbody id="devices-table">
-      <tr><td colspan="5" class="empty">Loading data...</td></tr>
+      <tr><td colspan="7" class="empty">Loading data...</td></tr>
     </tbody>
   </table>
 </div>
+
 <br><br>-- Stats --<br>
 <div style="overflow-x:auto;">
   <canvas id="sentChart" height="200"></canvas>
@@ -94,7 +92,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
-const apiKeysRef = ref(db, "apikeys/api_keys");
 const sentHistoryRef = ref(db, "sentHistory");
 
 // DOM
@@ -104,13 +101,15 @@ const limit = document.getElementById("limit");
 const table = document.getElementById("devices-table");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
-const statApiLimit = document.getElementById("stat-api-limit");
-const statApiOk = document.getElementById("stat-api-ok");
-const statApiTotal = document.getElementById("stat-api-total");
 
-// Table
+// Table & Sorting
 let devicesData = [];
 let sortSentAsc = true;
+
+// Interval
+let intervalId = null;
+
+// Render Table
 function renderTable() {
   table.innerHTML = "";
   let filtered = devicesData.filter(d => (d.botName || "").toLowerCase().includes(searchName.value.toLowerCase()));
@@ -127,10 +126,10 @@ function renderTable() {
       <td>${d.apiStart || "-"} - ${d.apiEnd || "-"}</td>
     </tr>`;
   });
-  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="6" class="empty">Tidak ada data</td></tr>`;
+  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
 }
 
-// Fetch functions
+// Fetch Devices
 async function fetchDevices() {
   try {
     const snapshot = await get(devicesRef);
@@ -148,29 +147,11 @@ async function fetchDevices() {
     renderTable();
   } catch (err) {
     console.error("Error devices:", err);
-    table.innerHTML = `<tr><td colspan="5" class="empty">Error ambil data</td></tr>`;
+    table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
   }
 }
 
-async function fetchApiKeys() {
-  try {
-    const snapshot = await get(apiKeysRef);
-    let totalApi = 0, totalLimit = 0, totalOk = 0; const now = Date.now();
-    snapshot.forEach(child => {
-      const d = child.val(); totalApi++;
-      if (d.disabled || (d.cooldownUntil && d.cooldownUntil > now)) totalLimit++; else totalOk++;
-    });
-    statApiLimit.textContent = totalLimit;
-    statApiOk.textContent = totalOk;
-    statApiTotal.textContent = totalApi;
-  } catch (err) {
-    console.error("Error API:", err);
-    statApiLimit.textContent = "-";
-    statApiOk.textContent = "-";
-    statApiTotal.textContent = "-";
-  }
-}
-
+// Fetch Sent History
 const ctx = document.getElementById("sentChart").getContext("2d");
 let sentChart = null;
 async function fetchSentHistory() {
@@ -215,37 +196,44 @@ async function fetchSentHistory() {
   }
 }
 
-// Auto refresh setiap 30 detik
+// Refresh All
 async function refreshAll() {
   await fetchDevices();
-  await fetchApiKeys();
   await fetchSentHistory();
 }
+
+// Start interval
+intervalId = setInterval(refreshAll, 300000);
 refreshAll();
-setInterval(refreshAll, 60000);
-// Pause interval kalau tab nggak aktif
+
+// Visibility change
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) {
-    clearInterval(intervalId); // stop refresh
+    clearInterval(intervalId);
+    intervalId = null;
     console.log("Tab ga aktif, refresh dihentikan");
-  } else {
-    intervalId = setInterval(refreshAll, 30000); // mulai lagi
-    refreshAll(); // langsung update pas balik aktif
+  } else if (!intervalId) {
+    intervalId = setInterval(refreshAll, 300000);
+    refreshAll();
     console.log("Tab aktif, refresh dimulai lagi");
   }
 });
-// Reset zoom button
+
+// Reset zoom
 document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
 
-// Filters / sort
+// Filters
 [searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
+
+// Sort column
 document.querySelector("th.sortable").addEventListener("click", () => {
   devicesData.sort((a, b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
     const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
     return sortSentAsc ? valB - valA : valA - valB;
   });
-  sortSentAsc = !sortSentAsc; renderTable();
+  sortSentAsc = !sortSentAsc;
+  renderTable();
 });
 </script>
 
