@@ -22,7 +22,7 @@ th.sortable { cursor:pointer; }
 .stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
 .stat-box span { font-weight:bold; color:#90caf9; }
 canvas { display:block; max-width:100%; }
-#resetZoom { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
+button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
 </style>
 </head>
 <body>
@@ -45,6 +45,7 @@ canvas { display:block; max-width:100%; }
     <option value="10">10</option>
     <option value="20">20</option>
   </select>
+  <button id="refreshBtn">Refresh Data</button>
 </div>
 
 <div class="table-container">
@@ -105,9 +106,6 @@ const statSent = document.getElementById("stat-sent");
 // Table & Sorting
 let devicesData = [];
 let sortSentAsc = true;
-
-// Interval
-let intervalId = null;
 
 // Render Table
 function renderTable() {
@@ -196,30 +194,17 @@ async function fetchSentHistory() {
   }
 }
 
-// Refresh All
+// Manual refresh
 async function refreshAll() {
   await fetchDevices();
   await fetchSentHistory();
 }
 
-// Start interval
-intervalId = setInterval(refreshAll, 300000);
+// Init
 refreshAll();
 
-// Visibility change
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) {
-    clearInterval(intervalId);
-    intervalId = null;
-    console.log("Tab ga aktif, refresh dihentikan");
-  } else if (!intervalId) {
-    intervalId = setInterval(refreshAll, 300000);
-    refreshAll();
-    console.log("Tab aktif, refresh dimulai lagi");
-  }
-});
-
-// Reset zoom
+// Button event
+document.getElementById("refreshBtn").addEventListener("click", refreshAll);
 document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
 
 // Filters
