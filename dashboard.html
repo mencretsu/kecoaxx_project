@@ -23,6 +23,15 @@ th.sortable { cursor:pointer; }
 .stat-box span { font-weight:bold; color:#90caf9; }
 canvas { display:block; max-width:100%; }
 button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
+.green-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #4caf50;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
 </style>
 </head>
 <body>
@@ -30,7 +39,10 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 <h1>Kecoaxx Dashboard</h1>
 
 <div class="stats">
-  <div class="stat-box">Active Devices: <span id="stat-active">0</span></div>
+<div class="stat-box">
+  <span class="green-dot"></span>
+  Active Devices: <span id="stat-active">0</span>
+</div>
   <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
 </div>
 
