@@ -31,7 +31,6 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   border-radius: 50%;
   margin-right: 6px;
 }
-
 </style>
 </head>
 <body>
@@ -44,6 +43,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   Active Devices: <span id="stat-active">0</span>
 </div>
   <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
+  <div class="stat-box">Total API: <span id="stat-totalapi">0</span></div>
 </div>
 
 <div class="filters">
@@ -69,6 +69,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
         <th>Device</th>
         <th>Bot</th>
         <th>App</th>
+        <th>API Ranges</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -105,6 +106,7 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
 const sentHistoryRef = ref(db, "sentHistory");
+const apiKeysRef = ref(db, "apiKeys");
 
 // DOM
 const searchName = document.getElementById("searchName");
@@ -113,28 +115,44 @@ const limit = document.getElementById("limit");
 const table = document.getElementById("devices-table");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
+const statTotalApi = document.getElementById("stat-totalapi"); // ELEMENT BARU
 
 // Table & Sorting
 let devicesData = [];
-let sortSentAsc = true;
+let sortSentAsc = false; // Default dari tertinggi ke terkecil
 
 // Render Table
 function renderTable() {
   table.innerHTML = "";
   let filtered = devicesData.filter(d => (d.botName || "").toLowerCase().includes(searchName.value.toLowerCase()));
+  
+  // SORTING DEFAULT: dari sent tertinggi ke terkecil
+  filtered.sort((a, b) => {
+    const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
+    const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
+    return valB - valA; // Tertinggi ke terkecil
+  });
+  
   let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
   filtered.slice(0, lim).forEach(d => {
     let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
+    
+    // Format ranges
+    const rangeStart = d.rangeStart !== undefined ? d.rangeStart : "-";
+    const rangeEnd = d.rangeEnd !== undefined ? d.rangeEnd : "-";
+    const rangeDisplay = (rangeStart !== "-" && rangeEnd !== "-") ? `${rangeStart}-${rangeEnd}` : "-";
+    
     table.innerHTML += `<tr>
       <td>${d.botName || "-"}</td>
       <td>${sent}</td>
       <td>${d.deviceName || d.id}</td>
       <td>${d.appVersion ? `v.${d.appVersion}` : "-"}</td>
       <td>${d.pkgName || "-"}</td>
+      <td>${rangeDisplay}</td>
       <td>${d.status || "-"}</td>
     </tr>`;
   });
-  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="6" class="empty">Tidak ada data</td></tr>`;
+  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
 }
 
 // Fetch Devices
@@ -158,6 +176,21 @@ async function fetchDevices() {
     table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
   }
 }
+
+async function fetchApiKeysCount() {
+  try {
+    const snapshot = await get(apiKeysRef);
+    let apiCount = 0;
+    snapshot.forEach(() => {
+      apiCount++; // Hitung jumlah API keys
+    });
+    statTotalApi.textContent = apiCount;
+  } catch (err) {
+    console.error("Error API keys:", err);
+    statTotalApi.textContent = "0";
+  }
+}
+
 // Fetch Sent History
 const ctx = document.getElementById("sentChart").getContext("2d");
 let sentChart = null;
@@ -191,7 +224,7 @@ async function fetchSentHistory() {
       },
       options: {
         responsive: true,
-        maintainAspectRatio: false, // supaya responsive container
+        maintainAspectRatio: false,
         plugins: {
           legend: { labels: { color: "#fff" } },
           tooltip: { mode: 'index', intersect: false },
@@ -226,10 +259,10 @@ async function fetchSentHistory() {
   }
 }
 
-
 // Manual refresh
 async function refreshAll() {
   await fetchDevices();
+  await fetchApiKeysCount(); // TAMBAH INI
   await fetchSentHistory();
 }
 
@@ -258,5 +291,4 @@ document.querySelector("th.sortable").addEventListener("click", () => {
   Powered by <span style="color:#90caf9;">mencretsu</span>
 </footer>
 </body>
-  
 </html>
