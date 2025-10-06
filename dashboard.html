@@ -163,13 +163,25 @@ async function fetchDevices() {
     const snapshot = await get(devicesRef);
     devicesData = [];
     let totalSent = 0, activeCount = 0;
+
     snapshot.forEach(child => {
-      const d = child.val(); d.id = child.key;
-      const sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-      if (sent > 0) activeCount++;
-      totalSent += sent;
+      const d = child.val();
+      d.id = child.key;
+
+      // Hitung sent secara numerik untuk sorting & total
+      let sentValue = 0;
+      if (timeRange.value === "today" && d.hasOwnProperty('sentToday')) sentValue = d.sentToday;
+      else if (timeRange.value === "all" && d.hasOwnProperty('totalSent')) sentValue = d.totalSent;
+
+      if (sentValue > 0) activeCount++;
+      totalSent += sentValue;
+
+      // Simpan nilai numerik untuk sorting nanti
+      d._sentValue = sentValue;
+
       devicesData.push(d);
     });
+
     statActive.textContent = activeCount;
     statSent.textContent = totalSent;
     renderTable();
@@ -178,6 +190,7 @@ async function fetchDevices() {
     table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
   }
 }
+
 
 async function fetchApiKeysCount() {
   try {
