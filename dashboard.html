@@ -141,15 +141,18 @@ function renderTable() {
     const rangeEnd = d.rangeEnd !== undefined ? d.rangeEnd : "-";
     const rangeDisplay = (rangeStart !== "-" && rangeEnd !== "-") ? `${rangeStart}-${rangeEnd}` : "-";
     
-    table.innerHTML += `<tr>
-      <td>${d.botName || "-"}</td>
-      <td>${sent}</td>
-      <td>${d.deviceName || d.id}</td>
-      <td>${d.appVersion ? `v.${d.appVersion}` : "-"}</td>
-      <td>${d.pkgName || "-"}</td>
-      <td>${rangeDisplay}</td>
-      <td>${d.status || "-"}</td>
-    </tr>`;
+    const val = v => v ? v : "-";
+    
+    table.innerHTML += `
+      <tr>
+        <td>${val(d.botName)}</td>
+        <td>${val(sent)}</td>
+        <td>${val(d.deviceName || d.id)}</td>
+        <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
+        <td>${val(d.pkgName)}</td>
+        <td>${val(rangeDisplay)}</td>
+        <td>${val(d.status)}</td>
+      </tr>`;
   });
   if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
 }
