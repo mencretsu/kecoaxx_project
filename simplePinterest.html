@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simple Pinterest</title>
+<style>
+  :root {
+    --bg: #121212;
+    --text: #eee;
+    --input-bg: #1e1e1e;
+    --btn-bg: #bb86fc;
+    --btn-hover: #985eff;
+    --card-bg: #1e1e1e;
+  }
+  body { 
+    font-family: sans-serif; 
+    background: var(--bg); 
+    color: var(--text); 
+    padding: 20px; 
+    margin: 0;
+  }
+  h2 { text-align: center; }
+  #searchBox { display: flex; justify-content: center; margin-top: 10px; }
+  input { 
+    padding: 10px; 
+    width: 70%; 
+    border: none; 
+    border-radius: 5px 0 0 5px; 
+    background: var(--input-bg); 
+    color: var(--text);
+  }
+  button { 
+    padding: 10px; 
+    border: none; 
+    border-radius: 0 5px 5px 0; 
+    background: var(--btn-bg); 
+    color: var(--text); 
+    cursor: pointer;
+  }
+  button:hover { background: var(--btn-hover); }
+  #results { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); 
+    gap: 10px; 
+    margin-top: 20px; 
+  }
+  .pin { position: relative; border-radius: 5px; overflow: hidden; background: var(--card-bg); }
+  .pin img { width: 100%; height: auto; display: block; }
+  .downloadBtn {
+    position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    background: rgba(187,134,252,0.8); 
+    color: #121212; 
+    border: none; 
+    padding: 5px 8px; 
+    border-radius: 3px; 
+    cursor: pointer;
+    font-size: 0.8em;
+  }
+  .downloadBtn:hover { background: rgba(152,94,255,0.8); }
+</style>
+</head>
+<body>
+<h2>Simple Pinterest</h2>
+<div id="searchBox">
+  <input type="text" id="keyword" placeholder="Ketik keyword...">
+  <button id="searchBtn">Search</button>
+</div>
+<div id="results"></div>
+
+<script>
+async function searchPinterest(keyword){
+    const proxy = "https://api.allorigins.win/get?url=";
+    const url = encodeURIComponent(`https://www.pinterest.com/search/pins/?q=${keyword}`);
+    const res = await fetch(proxy + url);
+    const data = await res.json();
+    const htmlText = data.contents;
+    const imgRegex = /"url":"(https:\\/\\/i.pinimg.com\\/.*?\.jpg)"/g;
+    let match, images = [];
+    while ((match = imgRegex.exec(htmlText)) !== null) {
+        images.push(match[1].replace(/\\u002F/g,'/'));
+    }
+    return images.slice(0, 20);
+}
+
+document.getElementById("searchBtn").addEventListener("click", async ()=>{
+    const keyword = document.getElementById("keyword").value.trim();
+    if(!keyword) return alert("Isi keyword dulu cok!");
+    const results = document.getElementById("results");
+    results.innerHTML = "Loading...";
+    const images = await searchPinterest(keyword);
+    results.innerHTML = "";
+    images.forEach(src => {
+        const div = document.createElement("div");
+        div.className = "pin";
+        div.innerHTML = `<img src="${src}"><button class="downloadBtn" onclick="downloadImg('${src}')">Download</button>`;
+        results.appendChild(div);
+    });
+});
+
+function downloadImg(url){
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = url.split("/").pop();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+</script>
+</body>
+</html>
