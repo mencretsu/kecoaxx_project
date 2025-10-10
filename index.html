@@ -63,14 +63,45 @@
             font-size: 16px;
             letter-spacing: 2px;
         }
+        .button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #24292e;
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.button:hover {
+  background: #444c56;
+}
+#releases {
+  margin-top: 12px;
+  list-style: none;
+  padding: 0;
+  display: none;
+}
+#releases li {
+  margin: 6px 0;
+}
+#releases a {
+  color: #0366d6;
+  text-decoration: none;
+}
+#releases a:hover {
+  text-decoration: underline;
+}
     </style>
 </head>
 <body>
     <h1>-k e c o a x x-</h1>
 
-    <a class="button no-icon" href="dashboard.html">Dashboard</a>
-<a href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug49.apk">kecoaxx v49</a> 
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug49.apk">
+    <a class="button no-icon" href="dashboard.html">📊 Dashboard</a>
+<a href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug53.apk">kecoaxx v53</a> 
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug53.apk">
         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
             <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -78,15 +109,17 @@
         </svg>
         Download Kecoaxx
     </a>
-<a class="button no-icon" href="simplePinterest.html">EZ Pinterest</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Kecoaxx Versi Lawas
-    </a>
+<!-- <a class="button no-icon" href="simplePinterest.html">EZ Pinterest</a> -->
+<a id="loadReleases" class="button" href="javascript:void(0)">
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+    <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  Kecoaxx Versi Lawas
+</a>
+
+<ul id="releases"></ul>
 
     <div class="sub-buttons">
         <h2>----- alat tempur -----</h2>
@@ -146,4 +179,34 @@
         </a>
     </div>
 </body>
+    <script>
+document.getElementById("loadReleases").addEventListener("click", () => {
+  const list = document.getElementById("releases");
+  if (list.style.display === "block") {
+    list.style.display = "none";
+    return;
+  }
+
+  list.innerHTML = "<li>Loading releases...</li>";
+  list.style.display = "block";
+
+  fetch("https://api.github.com/repos/mencretsu/kecoaxx_project/releases")
+    .then(res => res.json())
+    .then(data => {
+      list.innerHTML = "";
+      if (!data.length) {
+        list.innerHTML = "<li>Belum ada release</li>";
+        return;
+      }
+      data.forEach(r => {
+        const li = document.createElement("li");
+        li.innerHTML = `<a href="${r.html_url}" target="_blank">${r.name || r.tag_name}</a>`;
+        list.appendChild(li);
+      });
+    })
+    .catch(() => {
+      list.innerHTML = "<li>Gagal memuat release 😢</li>";
+    });
+});
+</script>
 </html>
