@@ -1,211 +1,150 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Kecoaxx Page</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background-color: #121212;
-            color: #ffffff;
-        }
-        h1 {
-            margin-bottom: 30px;
-            color: #ffffff;
-        }
-        .button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 10px;
-            width: 90%;
-            max-width: 300px;
-            padding: 12px 16px;
-            margin: 10px 0;
-            text-align: left;
-            background-color: #1f1f1f;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 8px;
-            font-size: 18px;
-            border: 1px solid #333;
-            transition: background-color 0.2s, color 0.2s;
-        }
-        .button.no-icon {
-            justify-content: center;
-        }
-        .button svg {
-            width: 20px;
-            height: 20px;
-            flex-shrink: 0;
-            vertical-align: middle;
-        }
-        .button:hover {
-            background-color: #333333;
-            color: #00bfff;
-        }
-        .sub-buttons {
-            margin-top: 20px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        h2 {
-            color: #ffffff;
-            margin-top: 20px;
-            margin-bottom: 8px;
-            font-size: 16px;
-            letter-spacing: 2px;
-        }
-        .button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 16px;
-  background: #24292e;
-  color: #fff;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-.button:hover {
-  background: #444c56;
-}
-#releases {
-  margin-top: 12px;
-  list-style: none;
-  padding: 0;
-  display: none;
-}
-#releases li {
-  margin: 6px 0;
-}
-#releases a {
-  color: #0366d6;
-  text-decoration: none;
-}
-#releases a:hover {
-  text-decoration: underline;
-}
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kecoaxx Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      background-color: #121212;
+      color: #ffffff;
+    }
+    h1 {
+      margin-bottom: 30px;
+      color: #ffffff;
+    }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      width: 90%;
+      max-width: 300px;
+      padding: 12px 16px;
+      margin: 10px 0;
+      text-align: left;
+      background-color: #1f1f1f;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 18px;
+      border: 1px solid #333;
+      transition: background-color 0.2s, color 0.2s;
+      cursor: pointer;
+    }
+    .button.no-icon {
+      justify-content: center;
+    }
+    .button svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+    .button:hover {
+      background-color: #333333;
+      color: #00bfff;
+    }
+    .sub-buttons {
+      margin-top: 20px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h2 {
+      color: #ffffff;
+      margin-top: 20px;
+      margin-bottom: 8px;
+      font-size: 16px;
+      letter-spacing: 2px;
+    }
+    #releases {
+      margin-top: 12px;
+      list-style: none;
+      padding: 0;
+    }
+    #releases li {
+      margin: 6px 0;
+    }
+    #releases a {
+      color: #00bfff;
+      text-decoration: none;
+    }
+    #releases a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-    <h1>-k e c o a x x-</h1>
+  <h1>-k e c o a x x-</h1>
 
-    <a class="button no-icon" href="dashboard.html">📊 Dashboard</a>
-<a href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug53.apk">kecoaxx v53</a> 
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug53.apk">
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Download Kecoaxx
-    </a>
-<!-- <a class="button no-icon" href="simplePinterest.html">EZ Pinterest</a> -->
-<a id="loadReleases" class="button" href="javascript:void(0)">
-  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-    <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-  Kecoaxx Versi Lawas
-</a>
+  <a class="button no-icon" href="dashboard.html">📊 Dashboard</a>
 
-<ul id="releases"></ul>
+  <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-debug53.apk">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Download Kecoaxx
+  </a>
 
-    <div class="sub-buttons">
-        <h2>----- alat tempur -----</h2>
+  <a id="loadReleases" class="button">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
+      <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Kecoaxx Versi Lawas
+  </a>
 
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/fakegps.apk">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            fake gps
-        </a>
+  <ul id="releases"></ul>
 
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/facebook.apk">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            facebook
-        </a>
+  <div class="sub-buttons">
+    <h2>----- alat tempur -----</h2>
 
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/tiktok.apk">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            tiktok
-        </a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/fakegps.apk">fake gps</a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/facebook.apk">facebook</a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/tiktok.apk">tiktok</a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/pinterest.apk">pinterest</a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/screenon.apk">screen on</a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/sugo.apk">sugo v33.0.1</a>
+  </div>
 
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/pinterest.apk">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            pinterest
-        </a>
+  <script>
+    document.getElementById("loadReleases").addEventListener("click", () => {
+      const list = document.getElementById("releases");
+      list.innerHTML = "<li>Loading releases...</li>";
 
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/screenon.apk">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            screen on
-        </a>
+      fetch("https://api.github.com/repos/mencretsu/kecoaxx_project/releases")
+        .then(res => res.json())
+        .then(data => {
+          list.innerHTML = "";
+          if (!data.length) {
+            list.innerHTML = "<li>Belum ada release </li>";
+            return;
+          }
 
-        <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/sugo.apk">
-            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            sugo v33.0.1
-        </a>
-    </div>
-</body>
-<script>
-document.getElementById("loadReleases").addEventListener("click", () => {
-  const list = document.getElementById("releases");
-  list.innerHTML = "<li>Loading releases...</li>";
+          data.forEach(r => {
+            const li = document.createElement("li");
+            li.innerHTML = `<a href="${r.html_url}" target="_blank">${r.name || r.tag_name}</a>`;
+            list.appendChild(li);
+          });
+        })
+        .catch(() => {
+          list.innerHTML = "<li>Gagal memuat</li>";
+        });
 
-  fetch("https://api.github.com/repos/mencretsu/kecoaxx_project/releases")
-    .then(res => res.json())
-    .then(data => {
-      list.innerHTML = "";
-      if (!data.length) {
-        list.innerHTML = "<li>Belum ada release</li>";
-        return;
-      }
-
-      data.forEach(r => {
-        const li = document.createElement("li");
-        li.innerHTML = `<a href="${r.html_url}" target="_blank">${r.name || r.tag_name}</a>`;
-        list.appendChild(li);
-      });
-    })
-    .catch(() => {
-      list.innerHTML = "<li>Gagal memuat</li>";
+      const btn = document.getElementById("loadReleases");
+      btn.style.pointerEvents = "none";
+      btn.style.opacity = "0.6";
     });
-
-  // tombol bisa diklik sekali aja biar gak reload terus
-  document.getElementById("loadReleases").style.pointerEvents = "none";
-  document.getElementById("loadReleases").style.opacity = "0.6";
-});
-</script>
+  </script>
+</body>
 </html>
