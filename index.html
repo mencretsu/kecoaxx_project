@@ -64,21 +64,63 @@
       font-size: 16px;
       letter-spacing: 2px;
     }
+    #releases-container {
+      background-color: #1a1a1a;
+      padding: 20px;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
     #releases {
       margin-top: 12px;
       list-style: none;
       padding: 0;
-      display: none; /* awalnya disembunyikan */
     }
     #releases li {
-      margin: 6px 0;
+      margin: 15px 0;
+      padding: 10px;
+      background-color: #252525;
+      border-radius: 6px;
+      border-left: 3px solid #00bfff;
     }
-    #releases a {
+    #releases .release-title {
       color: #00bfff;
-      text-decoration: none;
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 8px;
     }
-    #releases a:hover {
-      text-decoration: underline;
+    #releases .apk-list {
+      list-style: none;
+      padding: 0;
+      margin: 8px 0 0 0;
+    }
+    #releases .apk-list li {
+      margin: 5px 0;
+      padding: 8px;
+      background-color: #1f1f1f;
+      border-left: none;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    #releases .apk-info {
+      flex: 1;
+      color: #ffffff;
+    }
+    #releases .download-btn {
+      padding: 6px 12px;
+      background-color: #00bfff;
+      color: #000000;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: bold;
+      transition: background-color 0.2s;
+      white-space: nowrap;
+    }
+    #releases .download-btn:hover {
+      background-color: #0099cc;
     }
   </style>
 </head>
@@ -96,16 +138,18 @@
     Download Kecoaxx
   </a>
 
-  <a id="loadReleases" class="button">
+  <button class="button" onclick="toggleReleases()">
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
       <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
     Kecoaxx Versi Lawas
-  </a>
+  </button>
 
-  <ul id="releases"></ul>
+  <div id="releases-container" style="display: none; width: 100%; max-width: 600px; margin-top: 20px;">
+    <ul id="releases"><li>Loading releases...</li></ul>
+  </div>
 
   <div class="sub-buttons">
     <h2>----- alat tempur -----</h2>
@@ -119,17 +163,23 @@
   </div>
 
   <script>
-    const btn = document.getElementById("loadReleases");
-    const list = document.getElementById("releases");
+    let releasesLoaded = false;
 
-    btn.addEventListener("click", () => {
-      if (list.style.display === "block") {
-        // toggle: kalau udah muncul, sembunyikan
-        list.style.display = "none";
-        return;
+    function toggleReleases() {
+      const container = document.getElementById("releases-container");
+      if (container.style.display === "none") {
+        container.style.display = "block";
+        if (!releasesLoaded) {
+          loadReleases();
+          releasesLoaded = true;
+        }
+      } else {
+        container.style.display = "none";
       }
+    }
 
-      list.style.display = "block";
+    function loadReleases() {
+      const list = document.getElementById("releases");
       list.innerHTML = "<li>Loading releases...</li>";
 
       fetch("https://api.github.com/repos/mencretsu/kecoaxx_project/releases")
@@ -137,20 +187,39 @@
         .then(data => {
           list.innerHTML = "";
           if (!data.length) {
-            list.innerHTML = "<li>Belum ada data</li>";
+            list.innerHTML = "<li>Belum ada belum kah?</li>";
             return;
           }
 
           data.forEach(r => {
             const li = document.createElement("li");
-            li.innerHTML = `<a href="${r.html_url}" target="_blank">${r.name || r.tag_name}</a>`;
+            const apks = r.assets.filter(a => a.name.endsWith('.apk'));
+            
+            let html = `<div class="release-title">${r.name || r.tag_name}</div>`;
+            
+            if (apks.length > 0) {
+              html += '<ul class="apk-list">';
+              apks.forEach(apk => {
+                html += `
+                  <li>
+                    <div class="apk-info">📦 ${apk.name} | ${(apk.size / 1024 / 1024).toFixed(2)} MB</div>
+                    <a href="${apk.browser_download_url}" class="download-btn" download>Download</a>
+                  </li>
+                `;
+              });
+              html += '</ul>';
+            } else {
+              html += '<div style="color: #888; font-size: 14px;">Tidak ada APK</div>';
+            }
+            
+            li.innerHTML = html;
             list.appendChild(li);
           });
         })
         .catch(() => {
-          list.innerHTML = "<li>Gagal memuat</li>";
+          list.innerHTML = "<li>Gagal memuat...</li>";
         });
-    });
+    }
   </script>
 </body>
 </html>
