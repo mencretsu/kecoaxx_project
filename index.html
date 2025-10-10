@@ -179,16 +179,10 @@
         </a>
     </div>
 </body>
-    <script>
+<script>
 document.getElementById("loadReleases").addEventListener("click", () => {
   const list = document.getElementById("releases");
-  if (list.style.display === "block") {
-    list.style.display = "none";
-    return;
-  }
-
   list.innerHTML = "<li>Loading releases...</li>";
-  list.style.display = "block";
 
   fetch("https://api.github.com/repos/mencretsu/kecoaxx_project/releases")
     .then(res => res.json())
@@ -198,6 +192,7 @@ document.getElementById("loadReleases").addEventListener("click", () => {
         list.innerHTML = "<li>Belum ada release</li>";
         return;
       }
+
       data.forEach(r => {
         const li = document.createElement("li");
         li.innerHTML = `<a href="${r.html_url}" target="_blank">${r.name || r.tag_name}</a>`;
@@ -205,8 +200,12 @@ document.getElementById("loadReleases").addEventListener("click", () => {
       });
     })
     .catch(() => {
-      list.innerHTML = "<li>Gagal memuat release 😢</li>";
+      list.innerHTML = "<li>Gagal memuat</li>";
     });
+
+  // tombol bisa diklik sekali aja biar gak reload terus
+  document.getElementById("loadReleases").style.pointerEvents = "none";
+  document.getElementById("loadReleases").style.opacity = "0.6";
 });
 </script>
 </html>
