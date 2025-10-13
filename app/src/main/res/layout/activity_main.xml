@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_primary"
     tools:ignore="ExtraText">
 
     <!-- Header bar -->
@@ -14,19 +13,26 @@
         android:orientation="horizontal"
         android:padding="12dp"
         android:gravity="center_vertical"
-        android:background="#0A0A0A">
+        android:background="#111111">
 
+        <!-- Branding -->
         <TextView
             android:id="@+id/tvStatusz"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:fontFamily="@font/jetbrains_mono"
             android:text="@string/kecoaxx_bot_v_15"
-            android:textColor="#C5B6B6"
-            android:padding="8dp"
+            android:textAllCaps="true"
+            android:textColor="#8E8787"
             android:textSize="14sp" />
 
+        <!-- Spacer -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <!-- Status user -->
         <TextView
             android:id="@+id/tvUserStatus"
             android:layout_width="wrap_content"
@@ -34,10 +40,13 @@
             android:fontFamily="@font/jetbrains_mono"
             android:text="@string/login"
             android:textColor="#00FF66"
-            android:textSize="12sp"
-            android:layout_marginEnd="8dp"
-            android:visibility="gone" />
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:layout_marginEnd="12dp"
+            android:visibility="gone"
+            tools:ignore="SmallSp" />
 
+        <!-- Tombol update -->
         <TextView
             android:id="@+id/btnCheckUpdate"
             android:layout_width="wrap_content"
@@ -45,51 +54,38 @@
             android:clickable="true"
             android:focusable="true"
             android:fontFamily="@font/jetbrains_mono"
-            android:minHeight="40dp"
+            android:minHeight="48dp"
             android:padding="8dp"
             android:text="@string/update"
             android:textColor="#00FF66"
-            android:textSize="14sp"
-            tools:ignore="TouchTargetSizeCheck" />
+            android:textSize="15sp" />
+
     </LinearLayout>
 
     <!-- Scrollable content -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="40dp"
-        android:padding="16dp"
-        android:scrollbars="none"
-        android:fillViewport="true">
+        android:layout_marginTop="56dp"
+        android:background="#000000"
+        android:padding="24dp">
 
         <LinearLayout
             android:id="@+id/container"
             android:orientation="vertical"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:descendantFocusability="beforeDescendants"
-            android:focusableInTouchMode="true">
+            android:layout_height="wrap_content">
 
             <!-- Tombol konfigurasi -->
-            <LinearLayout
+            <Button
+                android:id="@+id/btnConfig"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@drawable/edittext_background"
-                android:layout_marginBottom="12dp">
-
-                <Button
-                    android:id="@+id/btnConfig"
-                    android:layout_width="match_parent"
-                    android:layout_height="42dp"
-                    android:background="@android:color/transparent"
-                    android:fontFamily="@font/jetbrains_mono"
-                    android:text="@string/konfigurasi"
-                    android:textAllCaps="false"
-                    android:textColor="#00FF66"
-                    android:textSize="14sp"
-                    tools:ignore="TouchTargetSizeCheck" />
-            </LinearLayout>
+                android:backgroundTint="#3D5AFE"
+                android:text="@string/konfigurasi"
+                android:textColor="#000000"
+                android:fontFamily="@font/jetbrains_mono"
+                android:layout_marginBottom="8dp" />
 
             <!-- Panel konfigurasi -->
             <LinearLayout
@@ -97,510 +93,206 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:visibility="gone"
-                android:descendantFocusability="beforeDescendants"
-                android:focusableInTouchMode="true">
+                android:paddingTop="10dp"
+                android:visibility="gone">
 
                 <!-- Target aplikasi -->
-                <LinearLayout
+                <EditText
+                    android:id="@+id/etTargetName"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:background="@drawable/edittext_background"
-                    android:padding="8dp"
-                    android:layout_marginBottom="12dp">
+                    android:autofillHints=""
+                    android:backgroundTint="#00FF66"
+                    android:fontFamily="@font/jetbrains_mono"
+                    android:hint="@string/aplikasi"
+                    android:focusable="true"
+                    android:clickable="true"
+                    android:inputType="none"
+                    android:minHeight="48dp"
+                    android:textColor="#00FF66"
+                    android:textColorHint="#AAAAAA"
+                    android:textCursorDrawable="@drawable/cursor_drawable"
+                    android:textSize="14sp" />
+
+                <!-- Grid Persona -->
+                <GridLayout
+                    android:id="@+id/gridPersona"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:columnCount="2"
+                    android:rowCount="3"
+                    android:orientation="horizontal"
+                    android:alignmentMode="alignMargins"
+                    android:rowOrderPreserved="false">
 
                     <EditText
-                        android:id="@+id/etTargetName"
-                        android:layout_width="match_parent"
-                        android:layout_height="32dp"
+                        android:id="@+id/etBotName"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:layout_row="0"
+                        android:layout_column="0"
                         android:autofillHints=""
-                        android:background="@android:color/transparent"
+                        android:hint="@string/nama"
+                        android:inputType="text"
+                        android:minHeight="48dp"
                         android:fontFamily="@font/jetbrains_mono"
-                        android:hint="@string/aplikasi"
-                        android:focusable="true"
-                        android:clickable="true"
-                        android:cursorVisible="false"
-                        android:inputType="none"
-                        android:paddingStart="0dp"
-                        android:paddingEnd="0dp"
                         android:textColor="#00FF66"
-                        android:textColorHint="#C5B6B6"
+                        android:textColorHint="#AAAAAA"
+                        android:backgroundTint="#00FF66"
                         android:textCursorDrawable="@drawable/cursor_drawable"
                         android:textSize="14sp"
-                        android:focusableInTouchMode="true" />
-                </LinearLayout>
+                        android:layout_marginEnd="8dp" />
 
-                <!-- Grid Persona 2 Kolom -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical">
-
-                    <!-- Baris 1: Nama & Pekerjaan -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="2">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="6dp"
-                            android:background="@drawable/edittext_background"
-                            android:padding="8dp">
-
-                            <EditText
-                                android:id="@+id/etBotName"
-                                android:layout_width="match_parent"
-                                android:layout_height="32dp"
-                                android:autofillHints=""
-                                android:background="@android:color/transparent"
-                                android:hint="@string/nama"
-                                android:inputType="text"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:textColor="#00FF66"
-                                android:textColorHint="#C5B6B6"
-                                android:textCursorDrawable="@drawable/cursor_drawable"
-                                android:textSize="14sp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:focusableInTouchMode="true" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/edittext_background"
-                            android:padding="8dp">
-
-                            <EditText
-                                android:id="@+id/etGender"
-                                android:layout_width="match_parent"
-                                android:layout_height="32dp"
-                                android:autofillHints=""
-                                android:background="@android:color/transparent"
-                                android:hint="@string/pekerjaan"
-                                android:inputType="text"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:textColor="#00FF66"
-                                android:textColorHint="#C5B6B6"
-                                android:textCursorDrawable="@drawable/cursor_drawable"
-                                android:textSize="14sp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:focusableInTouchMode="true" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- Baris 2: Domisili & Hobi -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="2"
-                        android:layout_marginTop="12dp">
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginEnd="6dp"
-                            android:background="@drawable/edittext_background"
-                            android:padding="8dp">
-
-                            <EditText
-                                android:id="@+id/etAddress"
-                                android:layout_width="match_parent"
-                                android:layout_height="32dp"
-                                android:autofillHints=""
-                                android:background="@android:color/transparent"
-                                android:hint="@string/domisili_kota"
-                                android:inputType="text"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:textColor="#00FF66"
-                                android:textColorHint="#C5B6B6"
-                                android:textCursorDrawable="@drawable/cursor_drawable"
-                                android:textSize="14sp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:focusableInTouchMode="true" />
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:orientation="vertical"
-                            android:layout_marginStart="6dp"
-                            android:background="@drawable/edittext_background"
-                            android:padding="8dp">
-
-                            <EditText
-                                android:id="@+id/etHobby"
-                                android:layout_width="match_parent"
-                                android:layout_height="32dp"
-                                android:autofillHints=""
-                                android:background="@android:color/transparent"
-                                android:hint="@string/hobi"
-                                android:inputType="text"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:textColor="#00FF66"
-                                android:textColorHint="#C5B6B6"
-                                android:textCursorDrawable="@drawable/cursor_drawable"
-                                android:textSize="14sp"
-                                android:paddingStart="0dp"
-                                android:paddingEnd="0dp"
-                                android:focusableInTouchMode="true" />
-                        </LinearLayout>
-                    </LinearLayout>
-
-                    <!-- Blacklist Section -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Blacklist"
-                            android:textColor="#C5B6B6"
-                            android:textSize="14sp"
-                            android:fontFamily="@font/jetbrains_mono"
-                            android:layout_marginBottom="8dp"/>
-
-                        <!-- Input untuk tambah item baru -->
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="horizontal"
-                            android:weightSum="10"
-                            android:layout_marginBottom="12dp">
-
-                            <EditText
-                                android:id="@+id/etNewBlacklistItem"
-                                android:layout_width="0dp"
-                                android:layout_height="40dp"
-                                android:layout_weight="8"
-                                android:layout_marginEnd="8dp"
-                                android:background="@drawable/edittext_background"
-                                android:hint="Tambah item blacklist..."
-                                android:inputType="text"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:textColor="#00FF66"
-                                android:textColorHint="#C5B6B6"
-                                android:textSize="14sp"
-                                android:paddingStart="12dp"
-                                android:paddingEnd="12dp"/>
-
-                            <Button
-                                android:id="@+id/btnAddBlacklist"
-                                android:layout_width="0dp"
-                                android:layout_height="40dp"
-                                android:layout_weight="2"
-                                android:background="@drawable/button_background"
-                                android:text="SIMPAN"
-                                android:textColor="#00FF66"
-                                android:fontFamily="@font/jetbrains_mono"
-                                android:textSize="12sp" />
-
-                        </LinearLayout>
-
-                        <!-- List blacklist items -->
-                        <LinearLayout
-                            android:id="@+id/blacklistContainer"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical"
-                            android:layout_marginTop="4dp"/>
-
-                    </LinearLayout>
-
-                    <View
-                        android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="#1A1A1A"
-                        android:layout_marginBottom="12dp" />
-                </LinearLayout>
-
-                <!-- Relog options -->
-                <TextView
-                    android:id="@+id/tvRelogLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/opsi_relog"
-                    android:textColor="#C5B6B6"
-                    android:textSize="14sp"
-                    android:fontFamily="@font/jetbrains_mono"
-                    android:layout_marginBottom="4dp" />
-
-                <RadioGroup
-                    android:id="@+id/rgRelogOption"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginBottom="12dp">
-
-                    <RadioButton
-                        android:id="@+id/rbRelogAll"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/semua"
-                        android:textColor="@color/radio_color"
-                        android:textSize="14sp"
-                        android:fontFamily="@font/jetbrains_mono" />
-
-                    <RadioButton
-                        android:id="@+id/rbRelogUnread"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/belum_dibaca"
-                        android:textColor="@color/radio_color"
-                        android:textSize="14sp"
-                        android:fontFamily="@font/jetbrains_mono"
-                        android:layout_marginStart="16dp" />
-
-                    <RadioButton
-                        android:id="@+id/rbNoRelog"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/no_relog"
-                        android:textColor="@color/radio_color"
-                        android:textSize="14sp"
-                        android:fontFamily="@font/jetbrains_mono"
-                        android:layout_marginStart="16dp" />
-                </RadioGroup>
-
-                <!-- Spinners -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2"
-                    android:layout_marginBottom="12dp">
-
-                    <LinearLayout
+                    <EditText
+                        android:id="@+id/etGender"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="6dp"
-                        android:background="@drawable/edittext_background"
-                        android:padding="2dp">
+                        android:layout_columnWeight="1"
+                        android:layout_row="0"
+                        android:layout_column="1"
+                        android:autofillHints=""
+                        android:hint="@string/pekerjaan"
+                        android:inputType="text"
+                        android:minHeight="48dp"
+                        android:fontFamily="@font/jetbrains_mono"
+                        android:textColor="#00FF66"
+                        android:textColorHint="#AAAAAA"
+                        android:backgroundTint="#00FF66"
+                        android:textCursorDrawable="@drawable/cursor_drawable"
+                        android:textSize="14sp"
+                        android:layout_marginStart="8dp" />
 
-                        <Spinner
-                            android:id="@+id/spinnerPersona"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:popupBackground="#0A0A0A"
-                            android:spinnerMode="dropdown" />
-                    </LinearLayout>
-
-                    <LinearLayout
+                    <EditText
+                        android:id="@+id/etAddress"
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="6dp"
-                        android:background="@drawable/edittext_background"
-                        android:padding="2dp">
+                        android:layout_columnWeight="1"
+                        android:layout_row="1"
+                        android:layout_column="0"
+                        android:autofillHints=""
+                        android:hint="@string/domisili_kota"
+                        android:inputType="text"
+                        android:minHeight="48dp"
+                        android:fontFamily="@font/jetbrains_mono"
+                        android:textColor="#00FF66"
+                        android:textColorHint="#AAAAAA"
+                        android:backgroundTint="#00FF66"
+                        android:textCursorDrawable="@drawable/cursor_drawable"
+                        android:textSize="14sp"
+                        android:layout_marginEnd="8dp" />
 
-                        <Spinner
-                            android:id="@+id/spinnerFakeGps"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:background="@android:color/transparent"
-                            android:popupBackground="#0A0A0A"
-                            android:spinnerMode="dropdown" />
-                    </LinearLayout>
-                </LinearLayout>
+                    <EditText
+                        android:id="@+id/etHobby"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:layout_row="1"
+                        android:layout_column="1"
+                        android:autofillHints=""
+                        android:hint="@string/hobi"
+                        android:inputType="text"
+                        android:minHeight="48dp"
+                        android:fontFamily="@font/jetbrains_mono"
+                        android:textColor="#00FF66"
+                        android:textColorHint="#AAAAAA"
+                        android:backgroundTint="#00FF66"
+                        android:textCursorDrawable="@drawable/cursor_drawable"
+                        android:textSize="14sp"
+                        android:layout_marginStart="8dp" />
+                    <EditText
+                        android:id="@+id/etBlacklist"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_columnWeight="1"
+                        android:layout_row="2"
+                        android:layout_column="0"
+                        android:autofillHints=""
+                        android:hint="@string/blacklist"
+                        android:inputType="text"
+                        android:minHeight="48dp"
+                        android:fontFamily="@font/jetbrains_mono"
+                        android:textColor="#00FF66"
+                        android:textColorHint="#AAAAAA"
+                        android:backgroundTint="#00FF66"
+                        android:textCursorDrawable="@drawable/cursor_drawable"
+                        android:textSize="14sp"
+                        android:layout_marginTop="8dp" />
+                </GridLayout>
+
+                <!-- Spinner persona -->
+                <Spinner
+                    android:id="@+id/spinnerPersona"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/spinner_background"
+                    android:popupBackground="#1A1A1A"
+                    android:minHeight="48dp"
+                    android:spinnerMode="dropdown" />
 
                 <!-- Tombol simpan -->
-                <LinearLayout
+                <Button
+                    android:id="@+id/btnSavePersona"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:background="@drawable/edittext_background"
                     android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp">
-
-                    <Button
-                        android:id="@+id/btnSavePersona"
-                        android:layout_width="match_parent"
-                        android:layout_height="42dp"
-                        android:background="@android:color/transparent"
-                        android:textColor="#00FF66"
-                        android:fontFamily="@font/jetbrains_mono"
-                        android:textSize="14sp"
-                        android:textAllCaps="false"
-                        android:text="@string/simpan_profil" />
-                </LinearLayout>
+                    android:backgroundTint="#3D5AFE"
+                    android:textColor="#FFFFFF"
+                    android:fontFamily="@font/jetbrains_mono"
+                    android:text="@string/simpan_profil" />
             </LinearLayout>
 
             <!-- Panel info -->
-            <TextView
-                android:id="@+id/tvPersonaInfo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/jetbrains_mono"
-                android:textColor="#00FF66"
-                android:textSize="14sp"
-                android:lineSpacingExtra="2dp"
-                android:layout_marginBottom="12dp"
-                android:visibility="visible" />
-
-            <!-- Action buttons + Dev Options -->
             <LinearLayout
-                style="?android:attr/buttonBarStyle"
+                android:id="@+id/panelInfo"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginBottom="12dp">
+                android:paddingTop="10dp"
+                android:visibility="visible">
 
-                <!-- Baris 1: Start & Clear -->
-                <LinearLayout
+                <TextView
+                    android:id="@+id/tvPersonaInfo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2"
-                    android:layout_marginBottom="8dp">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="6dp"
-                        android:background="@drawable/edittext_background">
-
-                        <Button
-                            android:id="@+id/btnStart"
-                            style="?android:attr/buttonBarButtonStyle"
-                            android:layout_width="match_parent"
-                            android:layout_height="42dp"
-                            android:background="@android:color/transparent"
-                            android:textColor="#00FF66"
-                            android:fontFamily="@font/jetbrains_mono"
-                            android:textSize="14sp"
-                            android:textAllCaps="false"
-                            android:clickable="false"
-                            android:text="@string/start_bot" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="6dp"
-                        android:background="@drawable/edittext_background">
-
-                        <Button
-                            android:id="@+id/btnClear"
-                            style="?android:attr/buttonBarButtonStyle"
-                            android:layout_width="match_parent"
-                            android:layout_height="42dp"
-                            android:background="@android:color/transparent"
-                            android:clickable="true"
-                            android:focusable="true"
-                            android:fontFamily="@font/jetbrains_mono"
-                            android:text="@string/hapus_data"
-                            android:textAllCaps="false"
-                            android:textColor="#FF5252"
-                            android:textSize="14sp"
-                            tools:ignore="TouchTargetSizeCheck" />
-                    </LinearLayout>
-                </LinearLayout>
-
-                <!-- Baris 2: Dev Options & Keyboard -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:weightSum="2">
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginEnd="6dp"
-                        android:background="@drawable/edittext_background">
-
-                        <Button
-                            android:id="@+id/btndevOpt"
-                            android:layout_width="match_parent"
-                            android:layout_height="42dp"
-                            android:background="@android:color/transparent"
-                            android:fontFamily="@font/jetbrains_mono"
-                            android:text="@string/opsi_pengembang"
-                            android:textAllCaps="false"
-                            android:textColor="#00FF66"
-                            android:textSize="14sp"
-                            tools:ignore="TouchTargetSizeCheck" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:orientation="vertical"
-                        android:layout_marginStart="6dp"
-                        android:background="@drawable/edittext_background">
-
-                        <Button
-                            android:id="@+id/btnkeyboardSett"
-                            android:layout_width="match_parent"
-                            android:layout_height="42dp"
-                            android:background="@android:color/transparent"
-                            android:fontFamily="@font/jetbrains_mono"
-                            android:text="⌨ Opsi Keyboard"
-                            android:textAllCaps="false"
-                            android:textColor="#00FF66"
-                            android:textSize="14sp"
-                            tools:ignore="TouchTargetSizeCheck" />
-                    </LinearLayout>
-                </LinearLayout>
+                    android:fontFamily="@font/jetbrains_mono"
+                    android:textColor="#00FF66"
+                    android:textSize="12sp" />
             </LinearLayout>
-
-            <!-- Divider -->
-            <View
+            <!-- Tombol start bot -->
+            <Button
+                android:id="@+id/btnStart"
                 android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="#1A1A1A"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="12dp" />
+                android:layout_height="wrap_content"
+                android:backgroundTint="#4CAF50"
+                android:textColor="#000000"
+                android:fontFamily="@font/jetbrains_mono"
+                android:clickable="false"
+                android:text="@string/start_bot" />
 
-            <!-- Status section -->
+            <!-- Status log -->
             <TextView
                 android:id="@+id/tvStatus1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:fontFamily="@font/jetbrains_mono"
                 android:text="@string/log_ngontol_v10"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:layout_marginBottom="8dp" />
+                android:textColor="#00FF66"
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/tvStatus"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:fontFamily="@font/jetbrains_mono"
-                android:textColor="#FFFFFF"
-                android:textSize="14sp"
-                android:lineSpacingExtra="2dp" />
+                android:textColor="#00FF66"
+                android:textSize="12sp" />
+
         </LinearLayout>
     </ScrollView>
+
 </FrameLayout>

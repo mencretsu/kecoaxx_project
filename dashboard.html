@@ -7,8 +7,8 @@
 <style>
 body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:10px; }
 h1 { text-align:center; margin:10px 0 18px 0; font-size:1.4rem; color:#fff; }
-.table-container { overflow-x:auto; }
-table { width:100%; min-width:400px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
+.table-container { overflow-x:auto; margin-bottom:10px; }
+table { width:100%; min-width:350px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
 thead { background:#272727; }
 th, td { padding:6px 10px; text-align:left; cursor:default; }
 th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; }
@@ -21,6 +21,16 @@ th.sortable { cursor:pointer; }
 .stats { display:flex; gap:16px; margin-bottom:10px; flex-wrap:wrap; }
 .stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
 .stat-box span { font-weight:bold; color:#90caf9; }
+canvas { display:block; max-width:100%; }
+button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
+.green-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #4caf50;
+  border-radius: 50%;
+  margin-right: 6px;
+}
 </style>
 </head>
 <body>
@@ -28,11 +38,12 @@ th.sortable { cursor:pointer; }
 <h1>Kecoaxx Dashboard</h1>
 
 <div class="stats">
-  <div class="stat-box">Active Devices: <span id="stat-active">0</span></div>
+<div class="stat-box">
+  <span class="green-dot"></span>
+  Active Devices: <span id="stat-active">0</span>
+</div>
   <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
-  <div class="stat-box">API Limit: <span id="stat-api-limit">0</span></div>
-  <div class="stat-box">API Available: <span id="stat-api-ok">0</span></div>
-  <div class="stat-box">Total API: <span id="stat-api-total">0</span></div>
+  <div class="stat-box">Total API: <span id="stat-totalapi">0</span></div>
 </div>
 
 <div class="filters">
@@ -46,6 +57,7 @@ th.sortable { cursor:pointer; }
     <option value="10">10</option>
     <option value="20">20</option>
   </select>
+  <button id="refreshBtn">Refresh Data</button>
 </div>
 
 <div class="table-container">
@@ -55,20 +67,31 @@ th.sortable { cursor:pointer; }
         <th>Nama</th>
         <th class="sortable">Sent ▲▼</th>
         <th>Device</th>
-        <th>Versi bot</th>
+        <th>Bot</th>
+        <th>App</th>
+        <th>API Ranges</th>
         <th>Status</th>
       </tr>
     </thead>
     <tbody id="devices-table">
-      <tr><td colspan="5" class="empty">Loading data...</td></tr>
+      <tr><td colspan="7" class="empty">Loading data...</td></tr>
     </tbody>
   </table>
 </div>
 
+<br><br>-- Stats --<br>
+<div style="overflow-x:auto;">
+  <canvas id="sentChart" height="200"></canvas>
+</div>
+<button id="resetZoom">Reset Zoom</button>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBWrIDwTn4Byd9gZdYeGtwVUe0q2f2KYT4",
   authDomain: "kecoaxx-db898.firebaseapp.com",
@@ -82,103 +105,195 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
-const apiKeysRef = ref(db, "apikeys/api_keys");
-
+const sentHistoryRef = ref(db, "sentHistory");
+const apiKeysRef = ref(db, "apiKeys/list");
+// DOM
 const searchName = document.getElementById("searchName");
 const timeRange = document.getElementById("timeRange");
 const limit = document.getElementById("limit");
 const table = document.getElementById("devices-table");
-
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
-const statApiLimit = document.getElementById("stat-api-limit");
-const statApiOk = document.getElementById("stat-api-ok");
-const statApiTotal = document.getElementById("stat-api-total");
+const statTotalApi = document.getElementById("stat-totalapi"); // ELEMENT BARU
 
+// Table & Sorting
 let devicesData = [];
-let sortSentAsc = true;
+let sortSentAsc = false; // Default dari tertinggi ke terkecil
 
+// Render Table
 function renderTable() {
   table.innerHTML = "";
-
-  let filtered = devicesData.filter(d => (d.botName||"").toLowerCase().includes(searchName.value.toLowerCase()));
+  let filtered = devicesData.filter(d => (d.botName || "").toLowerCase().includes(searchName.value.toLowerCase()));
+  
+  // SORTING DEFAULT: dari sent tertinggi ke terkecil
+  filtered.sort((a, b) => {
+    const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
+    const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
+    return valB - valA; // Tertinggi ke terkecil
+  });
+  
   let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
-
   filtered.slice(0, lim).forEach(d => {
     let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-    const row = `
+    
+    // Format ranges
+    const rangeStart = d.rangeStart !== undefined ? d.rangeStart : "-";
+    const rangeEnd = d.rangeEnd !== undefined ? d.rangeEnd : "-";
+    const rangeDisplay = (rangeStart !== "-" && rangeEnd !== "-") ? `${rangeStart}-${rangeEnd}` : "-";
+    
+    const val = v => v ? v : "-";
+    
+    table.innerHTML += `
       <tr>
-        <td>${d.botName||"-"}</td>
-        <td>${sent}</td>
-        <td>${d.deviceName||d.id}</td>
-        <td>${d.appVersion||"-"}</td>
-        <td>${d.status||"-"}</td>
-      </tr>
-    `;
-    table.innerHTML += row;
+        <td>${val(d.botName)}</td>
+        <td>${val(sent)}</td>
+        <td>${val(d.deviceName || d.id)}</td>
+        <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
+        <td>${val(d.pkgName)}</td>
+        <td>${val(rangeDisplay)}</td>
+        <td>${val(d.status)}</td>
+      </tr>`;
   });
-
-  if(filtered.length === 0) table.innerHTML = `<tr><td colspan="5" class="empty">Tidak ada data</td></tr>`;
+  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
 }
 
-onValue(devicesRef, snapshot => {
-  devicesData = [];
-  let totalSent = 0;
-  let activeCount = 0;
+// Fetch Devices
+async function fetchDevices() {
+  try {
+    const snapshot = await get(devicesRef);
+    devicesData = [];
+    let totalSent = 0, activeCount = 0;
 
-  snapshot.forEach(child => {
-    const data = child.val();
-    data.id = child.key;
+    snapshot.forEach(child => {
+      const d = child.val();
+      d.id = child.key;
 
-    const sent = timeRange.value === "today" ? (data.sentToday ?? 0) : (data.totalSent ?? 0);
-    if (sent > 0) { // aktif
-      activeCount++;
-      totalSent += sent;
-    }
+      // Hitung sent secara numerik untuk sorting & total
+      let sentValue = 0;
+      if (timeRange.value === "today" && d.hasOwnProperty('sentToday')) sentValue = d.sentToday;
+      else if (timeRange.value === "all" && d.hasOwnProperty('totalSent')) sentValue = d.totalSent;
 
-    devicesData.push(data);
-  });
+      if (sentValue > 0) activeCount++;
+      totalSent += sentValue;
 
-  statActive.textContent = activeCount;
-  statSent.textContent = totalSent;
-  renderTable();
-}, err => {
-  console.error("❌ Error ambil devices:", err);
-  table.innerHTML = `<tr><td colspan="5" class="empty">Error ambil data</td></tr>`;
-});
+      // Simpan nilai numerik untuk sorting nanti
+      d._sentValue = sentValue;
 
-onValue(apiKeysRef, snapshot => {
-  let totalApi = 0;
-  let totalLimit = 0;
-  let totalOk = 0;
-  const now = Date.now();
+      devicesData.push(d);
+    });
 
-  snapshot.forEach(child => {
-    const data = child.val();
-    totalApi++;
-    if (data.disabled || (data.cooldownUntil && data.cooldownUntil > now)) {
-      totalLimit++;
-    } else {
-      totalOk++;
-    }
-  });
+    statActive.textContent = activeCount;
+    statSent.textContent = totalSent;
+    renderTable();
+  } catch (err) {
+    console.error("Error devices:", err);
+    table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
+  }
+}
 
-  statApiLimit.textContent = totalLimit;
-  statApiOk.textContent = totalOk;
-  statApiTotal.textContent = totalApi;
-}, err => {
-  console.error("❌ Error ambil API keys:", err);
-  statApiLimit.textContent = "-";
-  statApiOk.textContent = "-";
-  statApiTotal.textContent = "-";
-});
 
-// Search / filter / limit
+async function fetchApiKeysCount() {
+  try {
+    const snapshot = await get(apiKeysRef);
+    let apiCount = 0;
+    snapshot.forEach(() => {
+      apiCount++; // Hitung jumlah API keys
+    });
+    statTotalApi.textContent = apiCount;
+  } catch (err) {
+    console.error("Error API keys:", err);
+    statTotalApi.textContent = "0";
+  }
+}
+
+// Fetch Sent History
+const ctx = document.getElementById("sentChart").getContext("2d");
+let sentChart = null;
+
+async function fetchSentHistory() {
+  try {
+    const snapshot = await get(sentHistoryRef);
+    const allDates = [];
+    snapshot.forEach(child => { 
+      allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); 
+    });
+    const labels = allDates.map(d => d.date);
+    const dataPoints = allDates.map(d => d.total);
+
+    if (sentChart) sentChart.destroy();
+
+    sentChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: "History",
+          data: dataPoints,
+          fill: true,
+          borderColor: "#90caf9",
+          backgroundColor: "rgba(144,202,249,0.2)",
+          tension: 0.3,
+          pointRadius: 3,
+          pointHoverRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: "#fff" } },
+          tooltip: { mode: 'index', intersect: false },
+          zoom: {
+            pan: { enabled: true, mode: 'x', overScaleMode: 'x' },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x',
+              limits: {
+                x: { min: 0, max: labels.length - 1 },
+                y: { min: 0 }
+              }
+            }
+          }
+        },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
+        scales: {
+          x: { 
+            ticks: { color: "#fff", maxRotation: 0, autoSkip: true }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
+          },
+          y: { 
+            ticks: { color: "#fff", beginAtZero: true }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
+          }
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Error history:", err);
+  }
+}
+
+// Manual refresh
+async function refreshAll() {
+  await fetchDevices();
+  await fetchApiKeysCount(); // TAMBAH INI
+  await fetchSentHistory();
+}
+
+// Init
+refreshAll();
+
+// Button event
+document.getElementById("refreshBtn").addEventListener("click", refreshAll);
+document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
+
+// Filters
 [searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
 
-// Sort Sent column
+// Sort column
 document.querySelector("th.sortable").addEventListener("click", () => {
-  devicesData.sort((a,b) => {
+  devicesData.sort((a, b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
     const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
     return sortSentAsc ? valB - valA : valA - valB;
@@ -187,6 +302,8 @@ document.querySelector("th.sortable").addEventListener("click", () => {
   renderTable();
 });
 </script>
-
+<footer style="text-align:center; padding:12px; font-size:0.75rem; color:#777; margin-top:20px;">
+  Powered by <span style="color:#90caf9;">mencretsu</span>
+</footer>
 </body>
 </html>

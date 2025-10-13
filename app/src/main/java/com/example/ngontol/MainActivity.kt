@@ -1,818 +1,596 @@
 package com.example.ngontol
 
+import android.accessibilityservice.AccessibilityServiceInfo
 import android.annotation.SuppressLint
-import android.app.AlertDialog
-import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.Log
-import android.view.View
-import android.view.WindowManager
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.TextView
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.toColorInt
-import androidx.lifecycle.lifecycleScope
-import com.example.ngontol.auth.LicenseManager
 import com.example.ngontol.databinding.ActivityMainBinding
-import com.example.ngontol.managers.FakeGpsManager
-import com.example.ngontol.managers.PermissionManager
-import com.example.ngontol.managers.UpdateManager
-import com.google.android.gms.location.LocationServices
-import com.jakewharton.threetenabp.AndroidThreeTen
-import kotlinx.coroutines.launch
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
+import android.view.View
+import android.view.WindowManager
+import android.widget.EditText
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import androidx.core.content.edit
+import androidx.core.net.toUri
+import com.example.ngontol.auth.AuthManager
+import android.app.AlertDialog
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.text.InputType
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.annotation.RequiresApi
+import androidx.core.content.FileProvider
+import com.example.ngontol.model.User
+import com.google.firebase.database.FirebaseDatabase
+import com.jakewharton.threetenabp.AndroidThreeTen
+import java.io.File
+import kotlin.jvm.java
+import org.threeten.bp.LocalTime
 
+@Suppress("DEPRECATION")
 class MainActivity : AppCompatActivity() {
-
     private lateinit var b: ActivityMainBinding
-    private lateinit var fakeGpsManager: FakeGpsManager
-    private var currentRelogOption = 3 // default no relog
+    private var botRunning = false
     private var selectedModel: BotPersona = BotPersona.GENZ_CENTIL
-    private var ignoreFakeSpinnerCallback = false
-    private val blacklistItems = mutableListOf<String>() // FIX: Simpan blacklist di memory
+    private var isServiceEnabled: Boolean = false
 
-    // ✅ BroadcastReceiver untuk sync status
-    private val botStatusReceiver = object : android.content.BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent?.action == "com.example.ngontol.BOT_STATUS_CHANGED") {
-                Log.d("MainActivity", "📡 Bot status changed, updating UI")
-                runOnUiThread {
-                    updateBotStatus()
-                    updateClearButton()
-                }
+    @SuppressLint("SetTextI18n", "UseKtx")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == 2001 && resultCode == RESULT_OK && data != null) {
+            val pm = packageManager
+            var packageName: String? = data.component?.packageName
+                ?: data.dataString
+                ?: (data.extras?.get("android.intent.extra.shortcut.INTENT") as? Intent)?.component?.packageName
+                ?: data.extras?.getString("android.intent.extra.PACKAGE_NAME")
+
+            if (packageName.isNullOrBlank()) {
+                toast("❌ Gagal ambil package dari picker")
+                Log.e("APP_PICKER", "data=$data, extras=${data.extras}")
+                return
             }
+
+            // whitelist aplikasi yg didukung
+            val supportedPkgs = listOf(
+                "com.voicemaker.android",
+                "com.hwsj.club"
+            )
+
+            if (packageName !in supportedPkgs) {
+                toast("❌ Layanan belum tersedia untuk $packageName")
+                return
+            }
+
+            // ambil nama app asli
+            val appName: String = try {
+                val appInfo = pm.getApplicationInfo(packageName, 0)
+                pm.getApplicationLabel(appInfo).toString()
+            } catch (e: PackageManager.NameNotFoundException) {
+                packageName
+            }
+
+            // update EditText & SharedPreferences
+            b.etTargetName.setText(appName)
+            getSharedPreferences("bot_prefs", MODE_PRIVATE).edit().apply {
+                putString("last_app_name", appName)
+                putString("last_app_package", packageName)
+                apply()
+            }
+
+            toast("✅ Aplikasi dipilih: $appName ($packageName)")
         }
+
     }
 
     @RequiresApi(Build.VERSION_CODES.P)
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         AndroidThreeTen.init(this)
-
+        val currentUser = AuthManager.getSavedUser(this)
+        if (currentUser == null) {
+            showLoginDialog()
+        } else {
+            // langsung ke home
+            toast("Auto login sebagai ${currentUser.phone}")
+        }
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
-        // Init managers
-        val fusedClient = LocationServices.getFusedLocationProviderClient(this)
-        fakeGpsManager = FakeGpsManager(this, fusedClient)
+        b.btnConfig.setOnClickListener {
+            if (b.panelForm.visibility == View.VISIBLE) {
+                b.panelForm.visibility = View.GONE
+            } else {
+                b.panelForm.visibility = View.VISIBLE
+                b.btnConfig.visibility = View.GONE
+            }
+        }
+        // 1. Setup Spinner Persona
+        val personaLabels = BotPersona.entries.map { it.label }
+        val adapter = ArrayAdapter(this, R.layout.spinner_item, personaLabels)
+        adapter.setDropDownViewResource(R.layout.spinner_item)
+        b.spinnerPersona.adapter = adapter
 
-        // Check license
-        checkLicense()
+        // 2. Ambil model terakhir yang dipilih dari SharedPreferences
+        val sharedPrefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
+        val savedModelName = sharedPrefs.getString("selected_model", BotPersona.GENZ_CENTIL.name)
+        val savedModelIndex = BotPersona.entries.toTypedArray().indexOfFirst { it.name == savedModelName }
+        if (savedModelIndex >= 0) {
+            b.spinnerPersona.setSelection(savedModelIndex)
+            selectedModel = BotPersona.entries.toTypedArray()[savedModelIndex]
+        }
+        b.etTargetName.apply {
+            isFocusable = false
+            isClickable = true
+            setOnClickListener {
+                val intent = Intent(Intent.ACTION_PICK_ACTIVITY)
+                val mainIntent = Intent(Intent.ACTION_MAIN, null)
+                mainIntent.addCategory(Intent.CATEGORY_LAUNCHER)
+                intent.putExtra(Intent.EXTRA_INTENT, mainIntent)
+                startActivityForResult(intent, 2001)
+            }
+        }
 
-        // Setup UI
-        setupPersonaSpinner()
-        setupFakeGpsSpinner()
-        setupButtons()
-        updateUI()
+        // 3. Listener Spinner
+        b.spinnerPersona.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
+                selectedModel = BotPersona.entries.toTypedArray()[position]
+                sharedPrefs.edit { putString("selected_model", selectedModel.name) }
+                tampilkanInfoProfilTersimpan()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+        // 4. Tombol Save Persona
+        b.btnSavePersona.setOnClickListener {
+            val prefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
+
+            // ambil data lama dari sharedprefs
+            val lastAppName = prefs.getString("last_app_name", null)
+            val lastAppPackage = prefs.getString("last_app_package", null)
+
+            // fallback ke nilai lama kalau kosong
+            val appName = lastAppName ?: ""
+            val appPackage = lastAppPackage ?: ""
+
+            // fallback botName (misalnya pakai yg lama)
+            val oldPersona = PersonaManager.getPersona(this)
+
+// pastiin convert kalau data lama masih string
+            val oldBlacklist: MutableList<String> = when (val bl = oldPersona?.blacklist) {
+                is List<*> -> bl.filterIsInstance<String>().toMutableList()
+                is String -> if (bl.isNotBlank()) bl.split(",").map { it.trim() }.toMutableList() else mutableListOf()
+                else -> mutableListOf()
+            }
+
+            val newItem = b.etBlacklist.text.toString().trim()
+            if (newItem.isNotBlank()) {
+                oldBlacklist.add(newItem)
+            }
+
+            val persona = Persona(
+                botName = if (b.etBotName.text.isNotBlank()) b.etBotName.text.toString()
+                else oldPersona?.botName ?: "",
+                gender = if (b.etGender.text.isNotBlank()) b.etGender.text.toString()
+                else oldPersona?.gender ?: "",
+                address = if (b.etAddress.text.isNotBlank()) b.etAddress.text.toString()
+                else oldPersona?.address ?: "",
+                hobby = if (b.etHobby.text.isNotBlank()) b.etHobby.text.toString()
+                else oldPersona?.hobby ?: "",
+                blacklist = oldBlacklist, // sekarang pasti List<String>
+                appName = if (!appName.isNullOrBlank()) appName else oldPersona?.appName,
+                appPackage = if (!appPackage.isNullOrBlank()) appPackage else oldPersona?.appPackage
+            )
+
+            // validasi minimal: harus ada nama & aplikasi (dari baru ATAU lama)
+            if (persona.botName.isBlank()) {
+                toast("Isi nama dulu!")
+                return@setOnClickListener
+            }
+            if (persona.appPackage.isNullOrBlank() || persona.appName.isNullOrBlank()) {
+                toast("Pilih aplikasi dulu! ")
+                return@setOnClickListener
+            }
+            PersonaManager.savePersona(this, persona)
+            toast("BERHASIL TERSIMPAN ✅")
+            b.panelForm.visibility = View.GONE
+            b.btnConfig.visibility = View.VISIBLE
+            tampilkanInfoProfilTersimpan()
+            b.btnStart.isEnabled = true
+
+        }
+        // 5. Tombol Start Bot
+        b.btnStart.setOnClickListener {
+            val serviceActive = isMyBotServiceAlive()
+            val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            if (!serviceActive) {
+                val ready = checkPrerequisites()
+                if (ready) {
+                    botRunning = true
+                    b.btnStart.text = "Stop Bot"
+                    b.btnStart.setBackgroundColor("#FF1744".toColorInt())
+                    if (!b.tvStatus.text.contains("Bot AKTIF")) {
+                        b.tvStatus.append("\n\uD83D\uDFE2 BOT AKTIF [$currentTime]")
+                        b.tvStatus.setTextColor("#00E676".toColorInt())
+                    }
+                }
+            } else {
+                val stopIntent = Intent(this, MyBotService::class.java).apply {
+                    action = MyBotService.ACTION_STOP
+                }
+                startService(stopIntent)
+                botRunning = false
+                b.btnStart.text = "Start Bot"
+                val berhentiText = "\n\uD83D\uDD34 BOT BERHENTI [$currentTime]"
+                val spannable = SpannableString(berhentiText)
+                spannable.setSpan(
+                    ForegroundColorSpan("#FF1744".toColorInt()),
+                    0,
+                    berhentiText.length,
+                    Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+                )
+                b.tvStatus.append(spannable)
+                b.btnStart.setBackgroundColor("#00E676".toColorInt())
+            }
+        }
+
+        // 6. Tombol Cek Update
+        b.btnCheckUpdate.setOnClickListener {
+            checkUpdate()  // ⬅️ panggil fungsi baru
+        }
+
+        b.tvUserStatus.setOnClickListener {
+            val user = AuthManager.getSavedUser(this)
+            if (user == null) {
+                // Belum login → buka login
+                showLoginDialog()
+            } else {
+                // Sudah login → buka dialog top up
+                showTopUpDialog(user)   // ✅ lempar user
+            }
+        }
+        // 7. Sembunyikan keyboard saat masuk activity
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN)
     }
 
     override fun onResume() {
         super.onResume()
-        updateUI()
+        updateBotStatusUI()
+        tampilkanInfoProfilTersimpan()
+        updateUserStatus()
+        val personaOK = PersonaManager.getPersona(this) != null
+        b.btnStart.isEnabled = personaOK
+
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // ✅ Unregister receiver
-        try {
-            unregisterReceiver(botStatusReceiver)
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Error unregister receiver: ${e.message}")
-        }
-    }
-
-    // ==================== LICENSE ====================
-
-    private fun checkLicense() {
-        lifecycleScope.launch {
-            val isValid = LicenseManager.validateLicense(this@MainActivity)
-            if (!isValid) {
-//                showLicenseDialog()
-                updateLicenseStatus()
-            } else {
-                updateLicenseStatus()
-            }
-        }
-    }
-
-    private fun showLicenseDialog() {
-        val input = EditText(this).apply {
-            hint = "Masukkan kode lisensi"
-            setPadding(50, 40, 50, 40)
-        }
-
-        AlertDialog.Builder(this)
-            .setTitle("🔒 Aktivasi Lisensi")
-            .setMessage("Masukkan kode lisensi untuk menggunakan aplikasi")
-            .setView(input)
-            .setPositiveButton("Aktivasi") { _, _ ->
-                val key = input.text.toString().trim()
-                if (key.isNotEmpty()) {
-                    activateLicense(key)
-                } else {
-                    toast("Kode lisensi tidak boleh kosong")
-                    finish()
-                }
-            }
-            .setNegativeButton("Keluar") { _, _ ->
-                finish()
-            }
-            .setCancelable(false)
-            .show()
-    }
-
-    private fun activateLicense(key: String) {
-        lifecycleScope.launch {
-            LicenseManager.activateLicense(this@MainActivity, key) { success, message ->
-                toast(message)
-                if (success) {
-                    updateLicenseStatus()
-                } else {
-                    finish()
-                }
-            }
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun updateLicenseStatus() {
-        val info = LicenseManager.getLicenseInfo(this)
-        if (info != null) {
-            val maskedKey = "${info.key.take(4)}****${info.key.takeLast(4)}"
-            b.tvUserStatus.text = "👤 ${info.userName} | 🔑 $maskedKey"
-        } else {
-            b.tvUserStatus.text = "Login"
-        }
-    }
-
-    // ==================== SETUP UI ====================
-
-    private fun setupPersonaSpinner() {
-        val labels = BotPersona.entries.map { it.label }
-        val adapter = ArrayAdapter(this, R.layout.spinner_item, labels)
-        adapter.setDropDownViewResource(R.layout.spinner_item)
-        b.spinnerPersona.adapter = adapter
-
-        // Load saved selection
-        val prefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
-        val savedModel = prefs.getString("selected_model", BotPersona.GENZ_CENTIL.name)
-        val index = BotPersona.entries.indexOfFirst { it.name == savedModel }
-        if (index >= 0) {
-            b.spinnerPersona.setSelection(index)
-            selectedModel = BotPersona.entries[index]
-        }
-
-        b.spinnerPersona.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            @SuppressLint("UseKtx")
-            override fun onItemSelected(parent: android.widget.AdapterView<*>, view: View?, pos: Int, id: Long) {
-                selectedModel = BotPersona.entries[pos]
-                prefs.edit().putString("selected_model", selectedModel.name).apply()
-                updatePersonaInfo()
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
-    }
-
-    private fun setupFakeGpsSpinner() {
-        val cityNames = fakeGpsManager.cities.map { it.name }
-        val adapter = ArrayAdapter(this, R.layout.spinner_item, cityNames)
-        adapter.setDropDownViewResource(R.layout.spinner_item)
-        b.spinnerFakeGps.adapter = adapter
-
-        // Load saved
-        val savedPos = fakeGpsManager.getSavedSelection()
-        ignoreFakeSpinnerCallback = true
-        b.spinnerFakeGps.setSelection(savedPos)
-
-        b.spinnerFakeGps.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>, view: View?, pos: Int, id: Long) {
-                if (ignoreFakeSpinnerCallback) {
-                    ignoreFakeSpinnerCallback = false
-                    return
-                }
-                handleFakeGpsChange(pos)
-            }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
-        }
-    }
-
-    @SuppressLint("UnspecifiedRegisterReceiverFlag")
-    private fun setupButtons() {
-        b.btnConfig.setOnClickListener {
-            showPersonaForm()
-        }
-
-        b.etTargetName.apply {
-            isFocusable = false
-            isClickable = true
-            setOnClickListener { showAppPicker() }
-        }
-
-        b.btnSavePersona.setOnClickListener {
-            savePersona()
-        }
-
-        b.btnStart.setOnClickListener {
-            toggleBot()
-        }
-
-        b.btnClear.setOnClickListener {
-            openAppSettings()
-        }
-
-        b.btnCheckUpdate.setOnClickListener {
-            checkUpdate()
-        }
-
-        b.tvUserStatus.setOnClickListener {
-            showLicenseInfo()
-        }
-
-        b.btndevOpt.setOnClickListener {
-            openDevOptions()
-        }
-
-        b.rgRelogOption.setOnCheckedChangeListener { _, checkedId ->
-            currentRelogOption = when (checkedId) {
-                R.id.rbRelogAll -> 1
-                R.id.rbRelogUnread -> 2
-                R.id.rbNoRelog -> 3
-                else -> 3
-            }
-        }
-        b.btnAddBlacklist.setOnClickListener {
-            addBlacklistItem()
-        }
-
-        b.btnkeyboardSett.setOnClickListener {
-            val intent = Intent(Settings.ACTION_INPUT_METHOD_SETTINGS).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            }
-            startActivity(intent)
-        }
-
-        // ✅ Register broadcast receiver
-        val filter = android.content.IntentFilter("com.example.ngontol.BOT_STATUS_CHANGED")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(botStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(botStatusReceiver, filter)
-        }
-    }
-
-    // ==================== BLACKLIST MANAGEMENT ====================
-
-    private fun addBlacklistItem() {
-        val newItem = b.etNewBlacklistItem.text.toString().trim()
-        if (newItem.isNotBlank()) {
-            if (!blacklistItems.contains(newItem)) {
-                blacklistItems.add(newItem)
-                updateBlacklistUI()
-                b.etNewBlacklistItem.setText("")
-                toast("✅ $newItem ditambahkan ke blacklist")
-            } else {
-                toast("❌ Item sudah ada di blacklist")
-            }
-        } else {
-            toast("❌ Masukkan item terlebih dahulu")
-        }
-    }
-
-    private fun removeBlacklistItem(item: String) {
-        blacklistItems.remove(item)
-        updateBlacklistUI()
-        toast("🗑️ $item dihapus dari blacklist")
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun updateBlacklistUI() {
-        b.blacklistContainer.removeAllViews()
-
-        if (blacklistItems.isEmpty()) {
-            val emptyView = TextView(this).apply {
-                text = "Tidak ada item blacklist"
-                setTextColor("#666666".toColorInt())
-                textSize = 11f
-                typeface = android.graphics.Typeface.MONOSPACE
-                setPadding(0, 8, 0, 8)
-            }
-            b.blacklistContainer.addView(emptyView)
-            return
-        }
-
-        for (item in blacklistItems) {
-            val itemLayout = LinearLayout(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                orientation = LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(0, 4, 0, 4)
-            }
-
-            val tvItem = TextView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    0,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    1f
-                )
-                text = "• $item"
-                setTextColor("#00FF66".toColorInt())
-                textSize = 11f
-                typeface = android.graphics.Typeface.MONOSPACE
-            }
-
-            val btnRemove = Button(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
-                text = "HAPUS"
-                setTextColor("#FF5252".toColorInt())
-                background = resources.getDrawable(R.drawable.button_background, null)
-                textSize = 10f
-                setPadding(16, 8, 16, 8)
-                setOnClickListener { removeBlacklistItem(item) }
-            }
-
-            itemLayout.addView(tvItem)
-            itemLayout.addView(btnRemove)
-            b.blacklistContainer.addView(itemLayout)
-        }
-    }
-
-    // ==================== PERSONA FORM ====================
-
-    @SuppressLint("UseKtx")
-    private fun showPersonaForm() {
-        val persona = PersonaManager.getPersona(this)
-
-        // FIX: Clear blacklist items sebelum load data
-        blacklistItems.clear()
-
-        // Set nilai form
-        persona?.let {
-            b.etBotName.setText(it.botName)
-            b.etGender.setText(it.gender)
-            b.etAddress.setText(it.address)
-            b.etHobby.setText(it.hobby)
-
-            // FIX: Load blacklist dari data lama SETELAH clear
-            it.blacklist?.let { oldBlacklist ->
-                blacklistItems.addAll(oldBlacklist)
-            }
-            updateBlacklistUI()
-
-            // SET RADIO BUTTON BERDASARKAN RELOG OPTION YANG DISIMPAN
-            val radioId = when (it.relogOption) {
-                1 -> R.id.rbRelogAll
-                2 -> R.id.rbRelogUnread
-                3 -> R.id.rbNoRelog
-                else -> R.id.rbNoRelog
-            }
-            b.rgRelogOption.check(radioId)
-
-            // Update currentRelogOption juga
-            currentRelogOption = it.relogOption ?: 3
-
-            // Set app name jika ada
-            if (!it.appName.isNullOrBlank()) {
-                b.etTargetName.setText(it.appName)
-            }
-        } ?: run {
-            // Jika persona null, set default values
-            b.etBotName.setText("")
-            b.etGender.setText("")
-            b.etAddress.setText("")
-            b.etHobby.setText("")
-            b.rgRelogOption.check(R.id.rbNoRelog)
-            currentRelogOption = 3
-            b.etTargetName.setText("")
-        }
-
-        // Clear new item input
-        b.etNewBlacklistItem.setText("")
-
-        b.panelForm.visibility = View.VISIBLE
-        b.btnConfig.visibility = View.GONE
-    }
-
-    // ==================== UI ACTIONS ====================
-
-    private fun showAppPicker() {
-        val apps = listOf(
-            "Sugo" to "com.voicemaker.android",
-            "Timo" to "com.hwsj.club",
-            "Sugo Lite" to "com.fiya.android"
-        )
-
-        val names = apps.map { it.first }.toTypedArray()
-
-        AlertDialog.Builder(this)
-            .setTitle("Pilih Aplikasi")
-            .setItems(names) { _, which ->
-                val (name, pkg) = apps[which]
-                b.etTargetName.setText(name)
-
-                getSharedPreferences("bot_prefs", MODE_PRIVATE).edit().apply {
-                    putString("last_app_name", name)
-                    putString("last_app_package", pkg)
-                    apply()
-                }
-
-                toast("✅ $name dipilih")
-            }
-            .show()
-    }
-
-    private fun savePersona() {
-        val prefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
-        val appName = prefs.getString("last_app_name", null)
-        val appPackage = prefs.getString("last_app_package", null)
-
-        val oldPersona = PersonaManager.getPersona(this)
-
-        // FIX: Gunakan blacklistItems dari UI, bukan dari oldPersona
-        val relogOption = currentRelogOption
-
-        val persona = Persona(
-            botName = b.etBotName.text.toString().ifBlank { oldPersona?.botName ?: "" },
-            gender = b.etGender.text.toString().ifBlank { oldPersona?.gender ?: "" },
-            address = b.etAddress.text.toString().ifBlank { oldPersona?.address ?: "" },
-            hobby = b.etHobby.text.toString().ifBlank { oldPersona?.hobby ?: "" },
-            blacklist = blacklistItems.toList(), // FIX: Pakai blacklist dari UI
-            appName = appName ?: oldPersona?.appName,
-            appPackage = appPackage ?: oldPersona?.appPackage,
-            relogOption = relogOption
-        )
-
-        if (persona.botName.isBlank()) {
-            toast("Isi nama dulu!")
-            return
-        }
-        if (persona.appPackage.isNullOrBlank() || persona.appName.isNullOrBlank()) {
-            toast("Pilih aplikasi dulu!")
-            return
-        }
-
-        PersonaManager.savePersona(this, persona)
-        toast("✅ Profil tersimpan")
-
-        b.panelForm.visibility = View.GONE
-        b.btnConfig.visibility = View.VISIBLE
-        updatePersonaInfo()
-        b.btnStart.isEnabled = true
-    }
-
-    private fun toggleBot() {
-        val serviceActive = MyBotService.isServiceActive()
-
-        if (!serviceActive) {
-            if (!checkPrerequisites()) return
-            startBot()
-        } else {
-            stopBot()
-        }
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun startBot() {
-        val fakeGpsPos = b.spinnerFakeGps.selectedItemPosition
-        if (fakeGpsPos > 0) {
-            val intent = Intent(this, FakeGpsService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                startForegroundService(intent)
-            } else {
-                startService(intent)
-            }
-        }
-
-        val intent = Intent(this, MyBotService::class.java)
-        startService(intent)
-
-        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        b.btnStart.text = "Stop Bot"
-        b.btnStart.setBackgroundColor("#FF1744".toColorInt())
-        b.tvStatus.text= "\uD83D\uDFE2 BOT AKTIF [$time]"
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun stopBot() {
-        val stopIntent = Intent(this, MyBotService::class.java).apply {
-            action = MyBotService.ACTION_STOP
-        }
-        startService(stopIntent)
-
-        stopService(Intent(this, FakeGpsService::class.java))
-
-        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        b.btnStart.text = "Start Bot"
-        b.btnStart.setBackgroundColor("#00E676".toColorInt())
-        b.tvStatus.text= "\uD83D\uDD34 BOT BERHENTI [$time]"
-    }
-
-    @SuppressLint("UseKtx")
-    private fun openAppSettings() {
-        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-            data = android.net.Uri.parse("package:com.example.ngontol")
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-        }
-        try {
-            startActivity(intent)
-            toast("Membuka info aplikasi...")
-        } catch (e: Exception) {
-            toast("Gagal: ${e.message}")
-        }
-    }
-
+// update //---
     private fun checkUpdate() {
-        UpdateManager.checkForUpdate(this) {
-            toast("✅ Sudah versi terbaru")
-        }
-    }
+        val db = FirebaseDatabase.getInstance(
+            "https://kecoaxx-db898-default-rtdb.asia-southeast1.firebasedatabase.app"
+        )
 
-    private fun showLicenseInfo() {
-        val info = LicenseManager.getLicenseInfo(this)
-        if (info == null) {
-            showLicenseDialog()
-            return
-        }
+        db.getReference("update").get().addOnSuccessListener { snap ->
+            val latestCode = snap.child("latestVersionCode").getValue(Int::class.java) ?: 0
+            val latestName = snap.child("latestVersionName").getValue(String::class.java) ?: "?"
+            val apkUrl = snap.child("apkUrl").getValue(String::class.java) ?: ""
+            val changelog = snap.child("changelog").getValue(String::class.java) ?: ""
 
-        val message = """
-            👤 User: ${info.userName}
-            🔑 Key: ${info.key}
-            📅 Expired: ${info.expiryDate ?: "Lifetime"}
-        """.trimIndent()
-
-        AlertDialog.Builder(this)
-            .setTitle("Info Lisensi")
-            .setMessage(message)
-            .setPositiveButton("OK", null)
-            .setNeutralButton("Logout") { _, _ ->
-                logout()
+            // ✅ ambil versi aplikasi yg lagi jalan
+            val pkgInfo = packageManager.getPackageInfo(packageName, 0)
+            val currentCode: Long = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                pkgInfo.longVersionCode
+            } else {
+                @Suppress("DEPRECATION")
+                pkgInfo.versionCode.toLong()
             }
-            .show()
+            val currentName = pkgInfo.versionName
+
+            if (latestCode > currentCode) {
+                showUpdateDialog(latestName, changelog, apkUrl)
+            } else {
+                Toast.makeText(this, "✅ Sudah versi terbaru ($currentName)", Toast.LENGTH_SHORT).show()
+            }
+        }.addOnFailureListener { e ->
+            Toast.makeText(this, "❌ Gagal cek update: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private fun logout() {
+
+    private fun showUpdateDialog(latestName: String, changelog: String, apkUrl: String) {
         AlertDialog.Builder(this)
-            .setTitle("Logout")
-            .setMessage("Yakin ingin logout?")
-            .setPositiveButton("Ya") { _, _ ->
-                LicenseManager.logout(this)
-                toast("Logout berhasil")
-                finish()
+            .setTitle("Update tersedia (v$latestName)")
+            .setMessage("Changelog:\n$changelog")
+            .setPositiveButton("Perbarui") { _, _ ->
+                downloadAndInstall(apkUrl)
             }
             .setNegativeButton("Batal", null)
             .show()
     }
 
-    // ==================== FAKE GPS ====================
 
-    @SuppressLint("MissingPermission")
-    private fun handleFakeGpsChange(position: Int) {
-        if (!PermissionManager.hasLocationPermission(this)) {
-            toast("Butuh izin lokasi")
-            resetFakeGpsSpinner()
-            PermissionManager.requestLocationPermission(this)
-            return
-        }
+    @SuppressLint("Range", "UnspecifiedRegisterReceiverFlag")
+    private fun downloadAndInstall(apkUrl: String) {
+        val request = DownloadManager.Request(Uri.parse(apkUrl))
+            .setTitle("Mengunduh kecoaxx...")
+            .setDescription("Sedang mengunduh kecoaxx")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setAllowedOverMetered(true)
+            .setMimeType("application/vnd.android.package-archive")
 
-        if (!PermissionManager.isLocationEnabled(this)) {
-            toast("Aktifkan GPS terlebih dahulu")
-            resetFakeGpsSpinner()
-            PermissionManager.openLocationSettings(this)
-            return
-        }
+        // ✅ simpan di folder internal app -> aman di Android 8+
+        request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, "update_app.apk")
 
-        if (!PermissionManager.isMockLocationEnabled(this) && position > 0) {
-            toast("Aktifkan Mock Location di Developer Options")
-            resetFakeGpsSpinner()
-            PermissionManager.openDeveloperSettings(this)
-            return
-        }
+        val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val downloadId = dm.enqueue(request)
 
-        lifecycleScope.launch {
-            fakeGpsManager.enableFakeGps(
-                position,
-                onSuccess = { city, lat, lng ->
-                    if (position > 0) {
-                        toast("✅ Fake GPS: $city\n(${"%.4f".format(lat)}, ${"%.4f".format(lng)})")
-                    } else {
-                        toast("Fake GPS: OFF")
+        val onComplete = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+                if (id == downloadId) {
+                    unregisterReceiver(this)
+
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    val cursor = dm.query(query)
+                    if (cursor.moveToFirst()) {
+                        val localUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI))
+                        val file = File(Uri.parse(localUri).path ?: return)
+
+                        // ✅ pake FileProvider biar aman di Android 7+
+                        val apkUri = FileProvider.getUriForFile(
+                            this@MainActivity,   // atau ganti dengan context lu
+                            "${packageName}.provider",
+                            file
+                        )
+
+                        val installIntent = Intent(Intent.ACTION_VIEW).apply {
+                            setDataAndType(apkUri, "application/vnd.android.package-archive")
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
+                        }
+                        startActivity(installIntent)
                     }
-                    updatePersonaInfo()
-                },
-                onError = { error ->
-                    toast(error)
-                    resetFakeGpsSpinner()
+                    cursor.close()
                 }
-            )
-        }
-    }
-
-    private fun resetFakeGpsSpinner() {
-        runOnUiThread {
-            ignoreFakeSpinnerCallback = true
-            b.spinnerFakeGps.setSelection(fakeGpsManager.getSavedSelection())
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PermissionManager.REQUEST_LOCATION) {
-            if (grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                toast("Permission diterima")
-            } else {
-                toast("Permission ditolak")
-                resetFakeGpsSpinner()
             }
         }
+        registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
     }
 
-    // ==================== UI UPDATE ====================
 
-    @SuppressLint("SetTextI18n")
-    private fun updateUI() {
-        updatePersonaInfo()
-        updateBotStatus()
-        updateLicenseStatus()
-        updateClearButton()
-
+    /** Cek persona tersimpan & accessibility aktif */
+    private fun checkPrerequisites(): Boolean {
         val personaOK = PersonaManager.getPersona(this) != null
+        val accOK = isServiceEnabled()
+
+        val statusBuilder = StringBuilder()
+
+        // Profile status
+        if (personaOK) {
+            statusBuilder.append("Checking profile status: [200 ok]\n")
+
+        } else {
+            statusBuilder.append("Checking profile status: [null]\n")
+        }
+        // Accessibility status
+        if (accOK) {
+            statusBuilder.append("Checking accessibility status:[200 ok]")
+        } else {
+            statusBuilder.append("Checking accessibility status:[off]")
+        }
+
+        b.tvStatus.text = statusBuilder
         b.btnStart.isEnabled = personaOK
 
-        ignoreFakeSpinnerCallback = true
-        b.spinnerFakeGps.setSelection(fakeGpsManager.getSavedSelection())
+        if (!personaOK) toast("Isi & save config dulu!")
+        if (!accOK) startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        return personaOK && accOK
     }
 
-    @SuppressLint("SetTextI18n")
-    private fun updatePersonaInfo() {
-        val persona = PersonaManager.getPersona(this)
-        val modelStr = getSharedPreferences("bot_prefs", MODE_PRIVATE)
-            .getString("selected_model", BotPersona.GENZ_CENTIL.name) ?: BotPersona.GENZ_CENTIL.name
-        val selectedModel = BotPersona.valueOf(modelStr)
-        val cityName = fakeGpsManager.getSavedCityName()
+    private fun isServiceEnabled(): Boolean {
+        val am = getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager
+        val list = am.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_GENERIC)
 
-        if (persona == null) {
-            b.tvPersonaInfo.text = "❌ PROFIL KOSONG"
-        } else {
-            val info = buildString {
-                appendLine("📰 PROFIL TERSIMPAN")
-                appendLine("⸻⸻⸻⸻⸻⸻⸻⸻")
-                appendLine("> ${persona.botName}, ${persona.gender}, ${persona.address}, ${persona.hobby}, $selectedModel")
-                if (!persona.appName.isNullOrBlank()) {
-                    appendLine("> ${persona.appName} (${persona.appPackage})")
-
-                    val relogText = when (persona.relogOption) {
-                        1 -> "Semua"
-                        2 -> "Belum Dibaca"
-                        3 -> "No Relog"
-                        else -> "Tidak Diketahui"
-                    }
-
-                    appendLine("> Relog: $relogText")
-                }
-
-                appendLine("> Blacklist: ${if (persona.blacklist.isNotEmpty()) persona.blacklist.joinToString(", ") else "-"}")
-                appendLine("> Fake GPS: $cityName")
-            }
-            b.tvPersonaInfo.text = info
-        }
+        return list.any { it.resolveInfo.serviceInfo.packageName == packageName }
     }
-
+    // Presisi: cek flag yang di-set oleh MyBotService
+    private fun isMyBotServiceAlive(): Boolean {
+        return getSharedPreferences("bot_prefs", MODE_PRIVATE).getBoolean("service_alive", false)
+    }
     @SuppressLint("SetTextI18n")
-    private fun updateBotStatus() {
-        val serviceActive = MyBotService.isServiceActive()
-        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+    private fun updateBotStatusUI() {
+        val currentTime = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
 
+        val serviceActive = isMyBotServiceAlive()
+        botRunning = serviceActive
         if (serviceActive) {
             b.btnStart.text = "Stop Bot"
+            toast("Bot AKTIF!")
             b.btnStart.setBackgroundColor("#FF1744".toColorInt())
-            if (!b.tvStatus.text.contains("BOT AKTIF")) {
-                b.tvStatus.append("\n🟢 BOT AKTIF [$time]")
+            if (!b.tvStatus.text.contains("Bot AKTIF")) {
+                b.tvStatus.append("\n\uD83D\uDFE2 BOT AKTIF [$currentTime]")
                 b.tvStatus.setTextColor("#00E676".toColorInt())
             }
         } else {
             b.btnStart.text = "Start Bot"
             b.btnStart.setBackgroundColor("#00E676".toColorInt())
-            if (b.tvStatus.text.contains("BOT AKTIF")) {
-                b.tvStatus.append("\n🔴 BOT BERHENTI [$time]")
-                b.tvStatus.setTextColor("#FF1744".toColorInt())
-
+            if (b.tvStatus.text.contains("Bot AKTIF")) {
+                b.tvStatus.append("\n\uD83D\uDD34 BOT BERHENTI [$currentTime]")
             }
         }
     }
+    /** Tampilkan info profil tersimpan dalam format yang kamu mau */
+    @SuppressLint("SetTextI18n")
+    private fun tampilkanInfoProfilTersimpan() {
+        val persona = PersonaManager.getPersona(this)
+        val modelStr = getSharedPreferences("bot_prefs", MODE_PRIVATE)
+            .getString("selected_model", BotPersona.GENZ_CENTIL.name) ?: BotPersona.GENZ_CENTIL.name
+        val selectedModel = BotPersona.valueOf(modelStr)
 
-    private fun updateClearButton() {
-        val hasProfileData = PersonaManager.getPersona(this) != null
-        val hasBotPrefs = getSharedPreferences("bot_prefs", MODE_PRIVATE).all.isNotEmpty()
-        val hasAnyData = hasProfileData || hasBotPrefs
-        val botRunning = MyBotService.isServiceActive()
+        if (persona == null) {
+            b.tvPersonaInfo.text = " ❌ PROFIL KOSONG "
+        } else {
+            val info = buildString {
+                appendLine("🔰 PROFIL TERSIMPAN\nⱭ͞ ̶͞ ̶͞ ̶͞ ̶͞ ̶͞ ̶͞ ̶͞لں͞")
+                appendLine("> ${persona.botName}, ${persona.gender}, ${persona.address}, ${persona.hobby}, $selectedModel")
+                if (!persona.appName.isNullOrBlank() && !persona.appPackage.isNullOrBlank()) {
+                    appendLine("> ${persona.appName} (${persona.appPackage})")
+                }
+                appendLine("> Blacklist: ${if (persona.blacklist.isNotEmpty()) persona.blacklist.joinToString(", ") else "-"}")
 
-        b.btnClear.isEnabled = !botRunning && hasAnyData
-        b.btnClear.alpha = if (b.btnClear.isEnabled) 1.0f else 0.5f
+            }
+            b.tvPersonaInfo.text = info
+        }
+    }
+    private fun showLoginDialog() {
+        val phoneInput = EditText(this).apply { hint = "Nomor HP" }
+        val passInput = EditText(this).apply {
+            hint = "Password"
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or
+                    android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+
+        val layout = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding(50, 40, 50, 10)
+            addView(phoneInput)
+            addView(passInput)
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Login / Register")
+            .setView(layout)
+            .setPositiveButton("OK") { dialog, _ ->
+                val phone = phoneInput.text.toString().trim()
+                val pass = passInput.text.toString().trim()
+
+                lifecycleScope.launch {
+                    AuthManager.loginOrRegister(
+                        this@MainActivity,
+                        phone,
+                        pass
+                    ) { success, message ->
+                        if (success) {
+                            toast(message ?: "Login sukses")
+                        } else {
+                            toast(message ?: "Login gagal")
+                        }
+                    }
+                }
+                dialog.dismiss()
+            }
+            .setNegativeButton("Batal") { d, _ -> d.dismiss() }
+            .show()
     }
 
-    // ==================== UTILS ====================
+    private fun showResetPasswordDialog() {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Reset Password (OTP Dummy)")
 
-    private fun checkPrerequisites(): Boolean {
-        val personaOK = PersonaManager.getPersona(this) != null
-        val accOK = isAccessibilityEnabled()
-
-        val status = buildString {
-            append("Profile: ")
-            appendLine(if (personaOK) "[200 OK]" else "[NULL]")
-            append("Accessibility: ")
-            append(if (accOK) "[200 OK]" else "[OFF]")
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(32, 24, 32, 24)
         }
 
-        b.tvStatus.text = status
-
-        if (!personaOK) {
-            toast("Isi & save config dulu!")
-            return false
+        val etPhone = EditText(this).apply {
+            hint = "Nomor HP"
+            inputType = InputType.TYPE_CLASS_PHONE
+        }
+        val etNewPass = EditText(this).apply {
+            hint = "Password Baru"
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
         }
 
-        if (!accOK) {
-            toast("Aktifkan Accessibility Service")
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-            return false
+        layout.addView(etPhone)
+        layout.addView(etNewPass)
+        builder.setView(layout)
+
+        builder.setPositiveButton("Reset") { dialog, _ ->
+            val phone = etPhone.text.toString().trim()
+            val newPass = etNewPass.text.toString().trim()
+
+            if (phone.isEmpty() || newPass.isEmpty()) {
+                toast("Isi semua field!")
+                return@setPositiveButton
+            }
+
+            val success = AuthManager.resetPassword(this, phone, newPass)
+            if (success) {
+                toast("Password direset ✅ (OTP dummy)")
+            } else {
+                toast("Nomor tidak terdaftar ❌")
+            }
+
+            dialog.dismiss()
         }
 
-        return true
-    }
 
-    private fun isAccessibilityEnabled(): Boolean {
-        val am = getSystemService(android.view.accessibility.AccessibilityManager::class.java)
-        val list = am.getEnabledAccessibilityServiceList(
-            android.accessibilityservice.AccessibilityServiceInfo.FEEDBACK_GENERIC
-        )
-        return list.any { it.resolveInfo.serviceInfo.packageName == packageName }
+        builder.show()
     }
 
     private fun toast(msg: String) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+    }
+    fun AppCompatActivity.toast(msg: String) {
+        android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
     }
 
-    @SuppressLint("HardwareIds")
-    private fun openDevOptions() {
-        try {
-            val devOptionEnabled = try {
-                android.provider.Settings.Global.getInt(
-                    contentResolver,
-                    android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED
-                ) == 1
-            } catch (e: Exception) {
-                false
-            }
-
-            val intent: Intent
-
-            if (devOptionEnabled) {
-                intent = Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+    @SuppressLint("SetTextI18n")
+    private fun updateUserStatus() {
+        val user = AuthManager.getSavedUser(this)
+        if (user == null) {
+            b.tvUserStatus.text = "Login"
+        } else {
+            val maskedPhone = if (user.phone.length > 5) {
+                user.phone.take(2) + "***" + user.phone.takeLast(3)
             } else {
-                intent = Intent(android.provider.Settings.ACTION_DEVICE_INFO_SETTINGS)
-                Toast.makeText(
-                    this,
-                    "Tap: Nomor versi/Build number/nomor build 7x.",
-                    Toast.LENGTH_LONG
-                ).show()
+                user.phone
             }
-
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            startActivity(intent)
-
-        } catch (e: Exception) {
-            try {
-                val fallbackIntent = Intent("android.settings.MY_DEVICE_INFO_SETTINGS")
-                fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(fallbackIntent)
-                Toast.makeText(
-                    this,
-                    "Tap: Nomor versi/Build number/nomor build 7x.",
-                    Toast.LENGTH_LONG
-                ).show()
-            } catch (e2: Exception) {
-                val lastIntent = Intent(android.provider.Settings.ACTION_SETTINGS)
-                lastIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                startActivity(lastIntent)
-            }
+            b.tvUserStatus.text = "$maskedPhone | Token: ${user.tokenBalance}"
         }
     }
+
+    private fun showTopUpDialog(user: User) {
+        val input = EditText(this).apply {
+            hint = "Jumlah token"
+            inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Top Up Token")
+            .setMessage("Isi jumlah token yang ingin dibeli untuk ${user.phone}")
+            .setView(input)
+            .setPositiveButton("OK") { d, _ ->
+                val jumlah = input.text.toString().toIntOrNull() ?: 0
+                if (jumlah > 0) {
+                    AuthManager.updateToken(this, user.phone, jumlah)
+                    updateUserStatus()
+                    toast("Top up berhasil +$jumlah token")
+                } else {
+                    toast("Jumlah tidak valid")
+                }
+                d.dismiss()
+            }
+            .setNegativeButton("Batal") { d, _ -> d.dismiss() }
+            .show()
+    }
+
+
 }
