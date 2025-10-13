@@ -14,7 +14,7 @@
         android:id="@+id/tvOverlayTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="● 蟑螂xx-活跃!"
+        android:text="● 蟑螂xx-活跃"
         android:textColor="#00FF00"
         android:paddingTop="6dp"
         android:textSize="18sp"

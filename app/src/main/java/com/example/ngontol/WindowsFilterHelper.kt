@@ -70,7 +70,7 @@ object WindowFilterHelper {
         return node.packageName == OWN_PACKAGE ||
                 node.contentDescription == "OVERLAY_IGNORE"
     }
-
+    
     fun scanNodeSafely(
         node: AccessibilityNodeInfo?,
         ownPackageName: String,
