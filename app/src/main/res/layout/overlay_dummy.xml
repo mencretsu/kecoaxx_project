@@ -1,0 +1,50 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:importantForAccessibility="noHideDescendants"
+    android:contentDescription="OVERLAY_IGNORE"
+    android:clickable="false"
+    android:focusable="false"
+    android:background="#CC000000">
+
+    <TextView
+        android:id="@+id/tvOverlayTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="● 蟑螂xx-活跃!"
+        android:textColor="#00FF00"
+        android:paddingTop="6dp"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:importantForAccessibility="no"
+        android:clickable="false"
+        android:focusable="false"
+        android:layout_marginBottom="8dp" />
+
+    <ScrollView
+        android:id="@+id/logScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:importantForAccessibility="no"
+        android:clickable="false"
+        android:focusable="false"
+        android:scrollbars="none">
+
+        <TextView
+            android:id="@+id/dummyLog"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:lineSpacingExtra="6dp"
+            android:fontFamily="monospace"
+            android:importantForAccessibility="no"
+            android:clickable="false"
+            android:focusable="false"
+            android:padding="8dp" />
+    </ScrollView>
+</LinearLayout>
