@@ -47,7 +47,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 </div>
 
 <div class="filters">
-  <input type="text" id="searchName" placeholder="Cari nama..." />
+  <input type="text" id="searchInput" placeholder="Cari nama, app, atau versi..." />
   <select id="timeRange">
     <option value="today">Hari ini</option>
     <option value="all">Semua</option>
@@ -108,7 +108,7 @@ const devicesRef = ref(db, "devices");
 const sentHistoryRef = ref(db, "sentHistory");
 const apiKeysRef = ref(db, "apiKeys/list");
 // DOM
-const searchName = document.getElementById("searchName");
+const searchInput = document.getElementById("searchInput");
 const timeRange = document.getElementById("timeRange");
 const statusFilter = document.getElementById("statusFilter");
 const table = document.getElementById("devices-table");
@@ -123,7 +123,14 @@ let sortSentAsc = false; // Default dari tertinggi ke terkecil
 // Render Table
 function renderTable() {
   table.innerHTML = "";
-  let filtered = devicesData.filter(d => (d.botName || "").toLowerCase().includes(searchName.value.toLowerCase()));
+  let filtered = devicesData.filter(d => {
+    const searchTerm = searchInput.value.toLowerCase();
+    const name = (d.botName || "").toLowerCase();
+    const app = (d.pkgName || "").toLowerCase();
+    const version = (d.appVersion || "").toLowerCase();
+    
+    return name.includes(searchTerm) || app.includes(searchTerm) || version.includes(searchTerm);
+  });
   
   // Filter by status
   filtered = filtered.filter(d => {
@@ -298,8 +305,8 @@ document.getElementById("refreshBtn").addEventListener("click", refreshAll);
 document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
 
 // Filters
-[searchName, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
-searchName.addEventListener("input", renderTable);
+[searchInput, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
+searchInput.addEventListener("input", renderTable);
 
 // Sort column
 document.querySelector("th.sortable").addEventListener("click", () => {
