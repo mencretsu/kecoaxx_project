@@ -52,10 +52,10 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
     <option value="today">Hari ini</option>
     <option value="all">Semua</option>
   </select>
-  <select id="limit">
-    <option value="all">Semua</option>
-    <option value="10">10</option>
-    <option value="20">20</option>
+  <select id="statusFilter">
+    <option value="active">Show Active</option>
+    <option value="inactive">Show Inactive</option>
+    <option value="all">Show All</option>
   </select>
   <button id="refreshBtn">Refresh Data</button>
 </div>
@@ -110,11 +110,11 @@ const apiKeysRef = ref(db, "apiKeys/list");
 // DOM
 const searchName = document.getElementById("searchName");
 const timeRange = document.getElementById("timeRange");
-const limit = document.getElementById("limit");
+const statusFilter = document.getElementById("statusFilter");
 const table = document.getElementById("devices-table");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
-const statTotalApi = document.getElementById("stat-totalapi"); // ELEMENT BARU
+const statTotalApi = document.getElementById("stat-totalapi");
 
 // Table & Sorting
 let devicesData = [];
@@ -125,6 +125,16 @@ function renderTable() {
   table.innerHTML = "";
   let filtered = devicesData.filter(d => (d.botName || "").toLowerCase().includes(searchName.value.toLowerCase()));
   
+  // Filter by status
+  filtered = filtered.filter(d => {
+    const sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
+    const isActive = sent > 0;
+    
+    if (statusFilter.value === "active") return isActive;
+    if (statusFilter.value === "inactive") return !isActive;
+    return true; // "all"
+  });
+  
   // SORTING DEFAULT: dari sent tertinggi ke terkecil
   filtered.sort((a, b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
@@ -132,8 +142,7 @@ function renderTable() {
     return valB - valA; // Tertinggi ke terkecil
   });
   
-  let lim = limit.value === "all" ? filtered.length : parseInt(limit.value);
-  filtered.slice(0, lim).forEach(d => {
+  filtered.forEach(d => {
     let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
     
     // Format ranges
@@ -197,7 +206,7 @@ async function fetchApiKeysCount() {
     const snapshot = await get(apiKeysRef);
     let apiCount = 0;
     snapshot.forEach(() => {
-      apiCount++; // Hitung jumlah API keys
+      apiCount++;
     });
     statTotalApi.textContent = apiCount;
   } catch (err) {
@@ -277,7 +286,7 @@ async function fetchSentHistory() {
 // Manual refresh
 async function refreshAll() {
   await fetchDevices();
-  await fetchApiKeysCount(); // TAMBAH INI
+  await fetchApiKeysCount();
   await fetchSentHistory();
 }
 
@@ -289,7 +298,8 @@ document.getElementById("refreshBtn").addEventListener("click", refreshAll);
 document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
 
 // Filters
-[searchName, timeRange, limit].forEach(el => el.addEventListener("input", renderTable));
+[searchName, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
+searchName.addEventListener("input", renderTable);
 
 // Sort column
 document.querySelector("th.sortable").addEventListener("click", () => {
