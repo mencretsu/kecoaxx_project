@@ -664,6 +664,10 @@ async function fetchSentHistory() {
     snapshot.forEach(child => { 
       allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); 
     });
+    
+    // Sort dates chronologically
+    allDates.sort((a, b) => new Date(a.date) - new Date(b.date));
+    
     const labels = allDates.map(d => d.date);
     const dataPoints = allDates.map(d => d.total);
 
@@ -695,68 +699,115 @@ async function fetchSentHistory() {
               color: "#fff",
               font: { size: 14, weight: 600 }
             } 
-                    },
+          },
           tooltip: { 
             mode: 'index',
             intersect: false,
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            titleFont: { size: 14, weight: 'bold' },
-            bodyFont: { size: 12 },
-            callbacks: {
-              label: function(context) {
-                return `${context.dataset.label}: ${context.parsed.y} pts`;
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            titleColor: '#90caf9',
+            bodyColor: '#e0e0e0',
+            borderColor: '#90caf9',
+            borderWidth: 1
+          },
+          zoom: {
+            pan: { 
+              enabled: true, 
+              mode: 'x',
+              modifierKey: 'ctrl'
+            },
+            zoom: {
+              wheel: { enabled: true },
+              pinch: { enabled: true },
+              mode: 'x',
+              limits: {
+                x: { min: 0, max: labels.length - 1 },
+                y: { min: 0 }
               }
             }
-          },
-          legend: {
-            labels: { color: '#fff' }
           }
         },
+        interaction: { 
+          mode: 'nearest', 
+          axis: 'x', 
+          intersect: false 
+        },
         scales: {
-          x: {
-            ticks: { color: '#ccc' },
-            grid: { color: 'rgba(255,255,255,0.1)' }
+          x: { 
+            ticks: { 
+              color: "#fff",
+              maxRotation: 45,
+              minRotation: 45
+            }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
           },
-          y: {
-            ticks: { color: '#ccc' },
-            grid: { color: 'rgba(255,255,255,0.1)' }
+          y: { 
+            ticks: { color: "#fff" }, 
+            grid: { color: "rgba(255,255,255,0.1)" },
+            beginAtZero: true
           }
         }
       }
     });
+  } catch (err) {
+    console.error("Error history:", err);
+  }
+}
 
-    // Update data realtime dari Firebase
-    const leaderboardRef = ref(db, 'leaderboard');
-    onValue(leaderboardRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      const entries = Object.entries(data).map(([key, val]) => ({
-        id: key,
-        ...val
-      }));
+// Manual refresh
+async function refreshAll() {
+  await fetchDevices();
+  await fetchApiKeysCount();
+  await fetchSentHistory();
+}
 
-      // Urutkan berdasarkan skor tertinggi
-      entries.sort((a, b) => b.score - a.score);
+// Auto-refresh every 30 seconds
+setInterval(refreshAll, 30000);
 
-      // Update leaderboard tampilan
-      const leaderboardDiv = document.getElementById('leaderboard');
-      leaderboardDiv.innerHTML = '';
-      entries.forEach((player, index) => {
-        const div = document.createElement('div');
-        div.className = 'player-row';
-        div.innerHTML = `
-          <div class="rank">${index + 1}</div>
-          <div class="name">${player.botName || 'Unknown Bot'}</div>
-          <div class="score">${player.score} pts</div>
-        `;
-        leaderboardDiv.appendChild(div);
-      });
+// Initialize
+refreshAll();
 
-      // Update chart
-      chart.data.labels = entries.map(e => e.botName);
-      chart.data.datasets[0].data = entries.map(e => e.score);
-      chart.update();
-    });
-  </script>
+// Event listeners
+document.getElementById("refreshBtn").addEventListener("click", refreshAll);
+document.getElementById("resetZoom").addEventListener("click", () => { 
+  if (sentChart) sentChart.resetZoom(); 
+});
+
+// Filters
+[searchInput, timeRange, statusFilter].forEach(el => {
+  el.addEventListener("change", renderTable);
+});
+searchInput.addEventListener("input", renderTable);
+
+// Sort column
+document.querySelector("th.sortable").addEventListener("click", () => {
+  devicesData.sort((a, b) => {
+    const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
+    const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
+    return sortSentAsc ? valB - valA : valA - valB;
+  });
+  sortSentAsc = !sortSentAsc;
+  renderTable();
+});
+
+// Responsive check
+function checkResponsive() {
+  const isMobile = window.innerWidth <= 768;
+  if (isMobile) {
+    document.querySelector('.table-container').style.display = 'none';
+    document.querySelector('.cards-container').style.display = 'block';
+  } else {
+    document.querySelector('.table-container').style.display = 'block';
+    document.querySelector('.cards-container').style.display = 'none';
+  }
+}
+
+window.addEventListener('resize', checkResponsive);
+checkResponsive(); // Initial check
+</script>
+
+<footer>
+  Powered by <span>mencretsu</span> | Kecoaxx Leaderboard v2.0
+</footer>
+
 </body>
 </html>
-
