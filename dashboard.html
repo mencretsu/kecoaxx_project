@@ -695,8 +695,68 @@ async function fetchSentHistory() {
               color: "#fff",
               font: { size: 14, weight: 600 }
             } 
-          },
+                    },
           tooltip: { 
             mode: 'index',
             intersect: false,
-            backgroundColor: 'rgba(0,0
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            titleFont: { size: 14, weight: 'bold' },
+            bodyFont: { size: 12 },
+            callbacks: {
+              label: function(context) {
+                return `${context.dataset.label}: ${context.parsed.y} pts`;
+              }
+            }
+          },
+          legend: {
+            labels: { color: '#fff' }
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#ccc' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          },
+          y: {
+            ticks: { color: '#ccc' },
+            grid: { color: 'rgba(255,255,255,0.1)' }
+          }
+        }
+      }
+    });
+
+    // Update data realtime dari Firebase
+    const leaderboardRef = ref(db, 'leaderboard');
+    onValue(leaderboardRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const entries = Object.entries(data).map(([key, val]) => ({
+        id: key,
+        ...val
+      }));
+
+      // Urutkan berdasarkan skor tertinggi
+      entries.sort((a, b) => b.score - a.score);
+
+      // Update leaderboard tampilan
+      const leaderboardDiv = document.getElementById('leaderboard');
+      leaderboardDiv.innerHTML = '';
+      entries.forEach((player, index) => {
+        const div = document.createElement('div');
+        div.className = 'player-row';
+        div.innerHTML = `
+          <div class="rank">${index + 1}</div>
+          <div class="name">${player.botName || 'Unknown Bot'}</div>
+          <div class="score">${player.score} pts</div>
+        `;
+        leaderboardDiv.appendChild(div);
+      });
+
+      // Update chart
+      chart.data.labels = entries.map(e => e.botName);
+      chart.data.datasets[0].data = entries.map(e => e.score);
+      chart.update();
+    });
+  </script>
+</body>
+</html>
+
