@@ -3,77 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kecoaxx Leaderboard</title>
+<title>Kecoaxx Dashboard</title>
 <style>
-/* Previous CSS styles tetap sama... */
-
-.chart-section {
-  background: #1e1e2e;
-  padding: 20px;
-  border-radius: 12px;
-  margin-top: 30px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
-  position: relative;
-}
-.chart-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #90caf9;
-  margin-bottom: 16px;
-  text-align: center;
-}
-.chart-wrapper {
-  position: relative;
-  height: 300px; /* Fixed height biar ga kegedean */
-  width: 100%;
-}
-canvas { 
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-}
-
-/* Tambahan buat chart controls */
-.chart-controls {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 15px;
-  flex-wrap: wrap;
-}
-.chart-controls button {
-  padding: 8px 16px;
-  font-size: 0.8rem;
-  background: rgba(144, 202, 249, 0.2);
-  color: #90caf9;
-  border: 1px solid #90caf9;
-}
-.chart-controls button:hover {
-  background: rgba(144, 202, 249, 0.3);
+body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:10px; }
+h1 { text-align:center; margin:10px 0 18px 0; font-size:1.4rem; color:#fff; }
+.table-container { overflow-x:auto; margin-bottom:10px; }
+table { width:100%; min-width:350px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
+thead { background:#272727; }
+th, td { padding:6px 10px; text-align:left; cursor:default; }
+th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; }
+tr:nth-child(even) { background:#2a2a2a; }
+tr:hover { background:#333; }
+td { border-bottom:1px solid #2c2c2c; vertical-align:middle; }
+.empty { text-align:center; padding:16px; color:#888; }
+.filters { margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap; }
+th.sortable { cursor:pointer; }
+.stats { display:flex; gap:16px; margin-bottom:10px; flex-wrap:wrap; }
+.stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
+.stat-box span { font-weight:bold; color:#90caf9; }
+canvas { display:block; max-width:100%; }
+button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
+.green-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #4caf50;
+  border-radius: 50%;
+  margin-right: 6px;
 }
 </style>
 </head>
 <body>
 
-<h1>🏆 Kecoaxx Leaderboard</h1>
+<h1>Kecoaxx Dashboard</h1>
 
 <div class="stats">
-  <div class="stat-box">
-    <div class="label"><span class="green-dot"></span>Active</div>
-    <div class="value" id="stat-active">0</div>
-  </div>
-  <div class="stat-box">
-    <div class="label">Total Sent</div>
-    <div class="value" id="stat-sent">0</div>
-  </div>
-  <div class="stat-box">
-    <div class="label">Total API</div>
-    <div class="value" id="stat-totalapi">0</div>
-  </div>
+<div class="stat-box">
+  <span class="green-dot"></span>
+  Active Devices: <span id="stat-active">0</span>
+</div>
+  <div class="stat-box">Total Sent: <span id="stat-sent">0</span></div>
+  <div class="stat-box">Total API: <span id="stat-totalapi">0</span></div>
 </div>
 
 <div class="filters">
-  <input type="text" id="searchInput" placeholder="🔍 Cari nama, app, atau versi..." />
+  <input type="text" id="searchInput" placeholder="Cari nama, app, atau versi..." />
   <select id="timeRange">
     <option value="today">Hari ini</option>
     <option value="all">Semua</option>
@@ -83,15 +57,13 @@ canvas {
     <option value="inactive">Show Inactive</option>
     <option value="all">Show All</option>
   </select>
-  <button id="refreshBtn">🔄 Refresh Data</button>
+  <button id="refreshBtn">Refresh Data</button>
 </div>
 
-<!-- Desktop Table -->
 <div class="table-container">
   <table>
     <thead>
       <tr>
-        <th>Rank</th>
         <th>Nama</th>
         <th class="sortable">Sent ▲▼</th>
         <th>Device</th>
@@ -102,27 +74,16 @@ canvas {
       </tr>
     </thead>
     <tbody id="devices-table">
-      <tr><td colspan="8" class="empty">Loading data...</td></tr>
+      <tr><td colspan="7" class="empty">Loading data...</td></tr>
     </tbody>
   </table>
 </div>
 
-<!-- Mobile Cards -->
-<div class="cards-container" id="devices-cards">
-  <div class="empty">Loading data...</div>
+<br><br>-- Stats --<br>
+<div style="overflow-x:auto;">
+  <canvas id="sentChart" height="200"></canvas>
 </div>
-
-<div class="chart-section">
-  <div class="chart-title">📊 Sent History Stats</div>
-  <div class="chart-wrapper">
-    <canvas id="sentChart"></canvas>
-  </div>
-  <div class="chart-controls">
-    <button id="resetZoom">Reset Zoom</button>
-    <button id="toggleAnimation">Pause Animation</button>
-    <button id="exportChart">Export Chart</button>
-  </div>
-</div>
+<button id="resetZoom">Reset Zoom</button>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
@@ -130,6 +91,7 @@ canvas {
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBWrIDwTn4Byd9gZdYeGtwVUe0q2f2KYT4",
   authDomain: "kecoaxx-db898.firebaseapp.com",
@@ -145,118 +107,73 @@ const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
 const sentHistoryRef = ref(db, "sentHistory");
 const apiKeysRef = ref(db, "apiKeys/list");
-
-// DOM elements
+// DOM
 const searchInput = document.getElementById("searchInput");
 const timeRange = document.getElementById("timeRange");
 const statusFilter = document.getElementById("statusFilter");
 const table = document.getElementById("devices-table");
-const cardsContainer = document.getElementById("devices-cards");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
 const statTotalApi = document.getElementById("stat-totalapi");
 
+// Table & Sorting
 let devicesData = [];
-let sortSentAsc = false;
-let chartAnimationEnabled = true;
+let sortSentAsc = false; // Default dari tertinggi ke terkecil
 
-function getMedalIcon(rank) {
-  if (rank === 1) return '<span class="medal">🥇</span>';
-  if (rank === 2) return '<span class="medal">🥈</span>';
-  if (rank === 3) return '<span class="medal">🥉</span>';
-  return '';
-}
-
+// Render Table
 function renderTable() {
   table.innerHTML = "";
-  cardsContainer.innerHTML = "";
-  
   let filtered = devicesData.filter(d => {
     const searchTerm = searchInput.value.toLowerCase();
     const name = (d.botName || "").toLowerCase();
     const app = (d.pkgName || "").toLowerCase();
     const version = (d.appVersion || "").toLowerCase();
+    
     return name.includes(searchTerm) || app.includes(searchTerm) || version.includes(searchTerm);
   });
   
+  // Filter by status
   filtered = filtered.filter(d => {
     const sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
     const isActive = sent > 0;
+    
     if (statusFilter.value === "active") return isActive;
     if (statusFilter.value === "inactive") return !isActive;
-    return true;
+    return true; // "all"
   });
   
+  // SORTING DEFAULT: dari sent tertinggi ke terkecil
   filtered.sort((a, b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
     const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
-    return valB - valA;
+    return valB - valA; // Tertinggi ke terkecil
   });
   
-  filtered.forEach((d, index) => {
-    const rank = index + 1;
+  filtered.forEach(d => {
     let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
     
+    // Format ranges
     const rangeStart = d.rangeStart !== undefined ? d.rangeStart : "-";
     const rangeEnd = d.rangeEnd !== undefined ? d.rangeEnd : "-";
     const rangeDisplay = (rangeStart !== "-" && rangeEnd !== "-") ? `${rangeStart}-${rangeEnd}` : "-";
     
     const val = v => v ? v : "-";
-    const rankClass = `rank-${rank <= 20 ? rank : 'default'}`;
-    const medalIcon = getMedalIcon(rank);
     
-    // Table row
     table.innerHTML += `
-      <tr class="${rankClass}">
-        <td class="rank-cell">${medalIcon}#${rank}</td>
+      <tr>
         <td>${val(d.botName)}</td>
-        <td><strong>${val(sent)}</strong></td>
+        <td>${val(sent)}</td>
         <td>${val(d.deviceName || d.id)}</td>
         <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
         <td>${val(d.pkgName)}</td>
         <td>${val(rangeDisplay)}</td>
         <td>${val(d.status)}</td>
       </tr>`;
-    
-    // Mobile card
-    cardsContainer.innerHTML += `
-      <div class="device-card ${rankClass}">
-        <div class="card-header">
-          <div class="card-rank">${medalIcon}#${rank}</div>
-          <div class="card-name">${val(d.botName)}</div>
-          <div class="card-sent">${val(sent)}</div>
-        </div>
-        <div class="card-details">
-          <div class="card-detail">
-            <div class="card-detail-label">Device</div>
-            <div class="card-detail-value">${val(d.deviceName || d.id)}</div>
-          </div>
-          <div class="card-detail">
-            <div class="card-detail-label">Bot Ver</div>
-            <div class="card-detail-value">${val(d.appVersion ? "v." + d.appVersion : "")}</div>
-          </div>
-          <div class="card-detail">
-            <div class="card-detail-label">App</div>
-            <div class="card-detail-value">${val(d.pkgName)}</div>
-          </div>
-          <div class="card-detail">
-            <div class="card-detail-label">API Range</div>
-            <div class="card-detail-value">${val(rangeDisplay)}</div>
-          </div>
-          <div class="card-detail">
-            <div class="card-detail-label">Status</div>
-            <div class="card-detail-value">${val(d.status)}</div>
-          </div>
-        </div>
-      </div>`;
   });
-  
-  if (filtered.length === 0) {
-    table.innerHTML = `<tr><td colspan="8" class="empty">Tidak ada data ditemukan</td></tr>`;
-    cardsContainer.innerHTML = `<div class="empty">Tidak ada data ditemukan</div>`;
-  }
+  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
 }
 
+// Fetch Devices
 async function fetchDevices() {
   try {
     const snapshot = await get(devicesRef);
@@ -267,6 +184,7 @@ async function fetchDevices() {
       const d = child.val();
       d.id = child.key;
 
+      // Hitung sent secara numerik untuk sorting & total
       let sentValue = 0;
       if (timeRange.value === "today" && d.hasOwnProperty('sentToday')) sentValue = d.sentToday;
       else if (timeRange.value === "all" && d.hasOwnProperty('totalSent')) sentValue = d.totalSent;
@@ -274,7 +192,9 @@ async function fetchDevices() {
       if (sentValue > 0) activeCount++;
       totalSent += sentValue;
 
+      // Simpan nilai numerik untuk sorting nanti
       d._sentValue = sentValue;
+
       devicesData.push(d);
     });
 
@@ -283,16 +203,18 @@ async function fetchDevices() {
     renderTable();
   } catch (err) {
     console.error("Error devices:", err);
-    table.innerHTML = `<tr><td colspan="8" class="empty">Error loading data</td></tr>`;
-    cardsContainer.innerHTML = `<div class="empty">Error loading data</div>`;
+    table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
   }
 }
+
 
 async function fetchApiKeysCount() {
   try {
     const snapshot = await get(apiKeysRef);
     let apiCount = 0;
-    snapshot.forEach(() => apiCount++);
+    snapshot.forEach(() => {
+      apiCount++;
+    });
     statTotalApi.textContent = apiCount;
   } catch (err) {
     console.error("Error API keys:", err);
@@ -300,6 +222,7 @@ async function fetchApiKeysCount() {
   }
 }
 
+// Fetch Sent History
 const ctx = document.getElementById("sentChart").getContext("2d");
 let sentChart = null;
 
@@ -310,18 +233,8 @@ async function fetchSentHistory() {
     snapshot.forEach(child => { 
       allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); 
     });
-    
-    // Sort dates chronologically
-    allDates.sort((a, b) => new Date(a.date) - new Date(b.date));
-    
-    // Ambil hanya 30 data terakhir biar ga terlalu penuh
-    const recentDates = allDates.slice(-30);
-    
-    const labels = recentDates.map(d => {
-      const date = new Date(d.date);
-      return date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-    });
-    const dataPoints = recentDates.map(d => d.total);
+    const labels = allDates.map(d => d.date);
+    const dataPoints = allDates.map(d => d.total);
 
     if (sentChart) sentChart.destroy();
 
@@ -330,52 +243,24 @@ async function fetchSentHistory() {
       data: {
         labels,
         datasets: [{
-          label: "Total Sent",
+          label: "History",
           data: dataPoints,
           fill: true,
           borderColor: "#90caf9",
-          backgroundColor: "rgba(144,202,249,0.3)",
-          tension: 0.4,
+          backgroundColor: "rgba(144,202,249,0.2)",
+          tension: 0.3,
           pointRadius: 3,
-          pointHoverRadius: 5,
-          pointBackgroundColor: "#90caf9",
-          pointBorderColor: "#0a0a0a",
-          pointBorderWidth: 2,
-          borderWidth: 3
+          pointHoverRadius: 5
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        animation: {
-          duration: chartAnimationEnabled ? 1000 : 0
-        },
         plugins: {
-          legend: { 
-            display: true,
-            labels: { 
-              color: "#fff",
-              font: { size: 12, weight: 600 },
-              boxWidth: 0
-            } 
-          },
-          tooltip: { 
-            mode: 'index',
-            intersect: false,
-            backgroundColor: 'rgba(30, 30, 46, 0.95)',
-            titleColor: '#90caf9',
-            bodyColor: '#e0e0e0',
-            borderColor: '#90caf9',
-            borderWidth: 1,
-            cornerRadius: 8,
-            displayColors: false
-          },
+          legend: { labels: { color: "#fff" } },
+          tooltip: { mode: 'index', intersect: false },
           zoom: {
-            pan: { 
-              enabled: true, 
-              mode: 'x',
-              modifierKey: 'ctrl'
-            },
+            pan: { enabled: true, mode: 'x', overScaleMode: 'x' },
             zoom: {
               wheel: { enabled: true },
               pinch: { enabled: true },
@@ -387,52 +272,15 @@ async function fetchSentHistory() {
             }
           }
         },
-        interaction: { 
-          mode: 'nearest', 
-          axis: 'x', 
-          intersect: false 
-        },
+        interaction: { mode: 'nearest', axis: 'x', intersect: false },
         scales: {
           x: { 
-            ticks: { 
-              color: "#aaa",
-              maxRotation: 45,
-              minRotation: 45,
-              font: { size: 10 }
-            }, 
-            grid: { 
-              color: "rgba(255,255,255,0.1)",
-              drawBorder: false
-            },
-            title: {
-              display: true,
-              text: 'Date',
-              color: '#90caf9'
-            }
+            ticks: { color: "#fff", maxRotation: 0, autoSkip: true }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
           },
           y: { 
-            ticks: { 
-              color: "#aaa",
-              font: { size: 10 }
-            }, 
-            grid: { 
-              color: "rgba(255,255,255,0.1)",
-              drawBorder: false
-            },
-            title: {
-              display: true,
-              text: 'Total Sent',
-              color: '#90caf9'
-            },
-            beginAtZero: true
-          }
-        },
-        layout: {
-          padding: {
-            top: 10,
-            right: 10,
-            bottom: 10,
-            left: 10
+            ticks: { color: "#fff", beginAtZero: true }, 
+            grid: { color: "rgba(255,255,255,0.1)" } 
           }
         }
       }
@@ -449,42 +297,15 @@ async function refreshAll() {
   await fetchSentHistory();
 }
 
-// Auto-refresh every 30 seconds
-setInterval(refreshAll, 30000);
-
-// Initialize
+// Init
 refreshAll();
 
-// Event listeners
+// Button event
 document.getElementById("refreshBtn").addEventListener("click", refreshAll);
-document.getElementById("resetZoom").addEventListener("click", () => { 
-  if (sentChart) sentChart.resetZoom(); 
-});
-
-// Toggle animation
-document.getElementById("toggleAnimation").addEventListener("click", function() {
-  chartAnimationEnabled = !chartAnimationEnabled;
-  this.textContent = chartAnimationEnabled ? 'Pause Animation' : 'Play Animation';
-  if (sentChart) {
-    sentChart.destroy();
-    fetchSentHistory();
-  }
-});
-
-// Export chart
-document.getElementById("exportChart").addEventListener("click", function() {
-  if (sentChart) {
-    const link = document.createElement('a');
-    link.download = 'kecoaxx-chart.png';
-    link.href = sentChart.toBase64Image();
-    link.click();
-  }
-});
+document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
 
 // Filters
-[searchInput, timeRange, statusFilter].forEach(el => {
-  el.addEventListener("change", renderTable);
-});
+[searchInput, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
 searchInput.addEventListener("input", renderTable);
 
 // Sort column
@@ -497,26 +318,9 @@ document.querySelector("th.sortable").addEventListener("click", () => {
   sortSentAsc = !sortSentAsc;
   renderTable();
 });
-
-// Responsive check
-function checkResponsive() {
-  const isMobile = window.innerWidth <= 768;
-  if (isMobile) {
-    document.querySelector('.table-container').style.display = 'none';
-    document.querySelector('.cards-container').style.display = 'block';
-  } else {
-    document.querySelector('.table-container').style.display = 'block';
-    document.querySelector('.cards-container').style.display = 'none';
-  }
-}
-
-window.addEventListener('resize', checkResponsive);
-checkResponsive(); // Initial check
 </script>
-
-<footer>
-  Powered by <span>mencretsu</span> | Kecoaxx Leaderboard v2.0
+<footer style="text-align:center; padding:12px; font-size:0.75rem; color:#777; margin-top:20px;">
+  Powered by <span style="color:#90caf9;">mencretsu</span>
 </footer>
-
 </body>
 </html>
