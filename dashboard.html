@@ -32,7 +32,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   border-radius: 50%;
   margin-right: 6px;
 }
-#sentChart { width: 100%; height: 300px; }
+#sentChart { width: 100%; height: 350px; }
 
 /* Chart Checkboxes */
 .chart-controls { 
@@ -52,14 +52,16 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #90caf9;
 }
-.chart-checkbox.avg input[type="checkbox"] {
-  accent-color: #4caf50;
-}
+.chart-checkbox.c-blue input[type="checkbox"] { accent-color: #90caf9; }
+.chart-checkbox.c-green input[type="checkbox"] { accent-color: #4caf50; }
+.chart-checkbox.c-orange input[type="checkbox"] { accent-color: #ff9800; }
+.chart-checkbox.c-purple input[type="checkbox"] { accent-color: #ab47bc; }
+.chart-checkbox.c-cyan input[type="checkbox"] { accent-color: #26c6da; }
+
 .chart-checkbox label {
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: #e0e0e0;
 }
@@ -116,13 +118,25 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 <br><br><div id="history-section">-- Stats --</div><br>
 
 <div class="chart-controls">
-  <div class="chart-checkbox">
-    <input type="checkbox" id="check-total-sent" checked>
+  <div class="chart-checkbox c-blue">
+    <input type="checkbox" id="check-total-sent">
     <label for="check-total-sent">Total Sent</label>
   </div>
-  <div class="chart-checkbox avg">
+  <div class="chart-checkbox c-green">
     <input type="checkbox" id="check-avg-device" checked>
     <label for="check-avg-device">Avg per Device</label>
+  </div>
+  <div class="chart-checkbox c-orange">
+    <input type="checkbox" id="check-daily-growth">
+    <label for="check-daily-growth">Daily Growth %</label>
+  </div>
+  <div class="chart-checkbox c-purple">
+    <input type="checkbox" id="check-efficiency-growth">
+    <label for="check-efficiency-growth">Efficiency Growth %</label>
+  </div>
+  <div class="chart-checkbox c-cyan">
+    <input type="checkbox" id="check-active-devices">
+    <label for="check-active-devices">Active Devices</label>
   </div>
 </div>
 
@@ -256,7 +270,10 @@ async function fetchApiKeysCount() {
 let chartData = {
   labels: [],
   totalSentData: [],
-  avgPerDeviceData: []
+  avgPerDeviceData: [],
+  dailyGrowthData: [],
+  efficiencyGrowthData: [],
+  activeDevicesData: []
 };
 
 // Fetch Sent History
@@ -273,10 +290,31 @@ async function fetchSentHistory() {
       }); 
     });
     
+    // Sort by date
+    allDates.sort((a, b) => a.date.localeCompare(b.date));
+    
     chartData.labels = allDates.map(d => d.date);
     chartData.totalSentData = allDates.map(d => d.totalSent);
+    chartData.activeDevicesData = allDates.map(d => d.activeDevices);
     chartData.avgPerDeviceData = allDates.map(d => {
-      return d.activeDevices > 0 ? (d.totalSent / d.activeDevices).toFixed(2) : 0;
+      return d.activeDevices > 0 ? parseFloat((d.totalSent / d.activeDevices).toFixed(2)) : 0;
+    });
+
+    // Calculate Daily Growth % (Total Sent)
+    chartData.dailyGrowthData = allDates.map((d, i) => {
+      if (i === 0) return 0;
+      const prev = allDates[i - 1].totalSent;
+      if (prev === 0) return 0;
+      return parseFloat((((d.totalSent - prev) / prev) * 100).toFixed(2));
+    });
+
+    // Calculate Efficiency Growth % (Avg per Device)
+    chartData.efficiencyGrowthData = allDates.map((d, i) => {
+      if (i === 0) return 0;
+      const currAvg = d.activeDevices > 0 ? d.totalSent / d.activeDevices : 0;
+      const prevAvg = allDates[i - 1].activeDevices > 0 ? allDates[i - 1].totalSent / allDates[i - 1].activeDevices : 0;
+      if (prevAvg === 0) return 0;
+      return parseFloat((((currAvg - prevAvg) / prevAvg) * 100).toFixed(2));
     });
 
     updateChart();
@@ -289,8 +327,24 @@ async function fetchSentHistory() {
 function updateChart() {
   const showTotalSent = document.getElementById('check-total-sent').checked;
   const showAvgDevice = document.getElementById('check-avg-device').checked;
+  const showDailyGrowth = document.getElementById('check-daily-growth').checked;
+  const showEfficiencyGrowth = document.getElementById('check-efficiency-growth').checked;
+  const showActiveDevices = document.getElementById('check-active-devices').checked;
   
   const traces = [];
+  const yaxisConfig = {};
+  let yaxisCounter = 1;
+
+  // Helper to get next yaxis
+  const getYAxis = () => {
+    if (yaxisCounter === 1) {
+      yaxisCounter++;
+      return 'y';
+    }
+    const axis = `y${yaxisCounter}`;
+    yaxisCounter++;
+    return axis;
+  };
   
   if (showTotalSent) {
     traces.push({
@@ -299,10 +353,9 @@ function updateChart() {
       type: 'scatter',
       mode: 'lines+markers',
       name: 'Total Sent',
+      yaxis: getYAxis(),
       line: { color: '#90caf9', width: 2, shape: 'spline' },
-      marker: { color: '#90caf9', size: 6 },
-      fill: 'tozeroy',
-      fillcolor: 'rgba(144,202,249,0.2)'
+      marker: { color: '#90caf9', size: 5 }
     });
   }
 
@@ -313,9 +366,48 @@ function updateChart() {
       type: 'scatter',
       mode: 'lines+markers',
       name: 'Avg per Device',
-      yaxis: showTotalSent ? 'y2' : 'y',
+      yaxis: getYAxis(),
       line: { color: '#4caf50', width: 2, shape: 'spline' },
-      marker: { color: '#4caf50', size: 6 }
+      marker: { color: '#4caf50', size: 5 }
+    });
+  }
+
+  if (showDailyGrowth) {
+    traces.push({
+      x: chartData.labels,
+      y: chartData.dailyGrowthData,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Daily Growth %',
+      yaxis: getYAxis(),
+      line: { color: '#ff9800', width: 2, shape: 'spline' },
+      marker: { color: '#ff9800', size: 5 }
+    });
+  }
+
+  if (showEfficiencyGrowth) {
+    traces.push({
+      x: chartData.labels,
+      y: chartData.efficiencyGrowthData,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Efficiency Growth %',
+      yaxis: getYAxis(),
+      line: { color: '#ab47bc', width: 2, shape: 'spline' },
+      marker: { color: '#ab47bc', size: 5 }
+    });
+  }
+
+  if (showActiveDevices) {
+    traces.push({
+      x: chartData.labels,
+      y: chartData.activeDevicesData,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Active Devices',
+      yaxis: getYAxis(),
+      line: { color: '#26c6da', width: 2, shape: 'spline' },
+      marker: { color: '#26c6da', size: 5 }
     });
   }
 
@@ -329,27 +421,41 @@ function updateChart() {
       color: '#fff'
     },
     yaxis: {
-      title: showTotalSent ? 'Total Sent' : 'Avg per Device',
       gridcolor: 'rgba(255,255,255,0.1)',
       showgrid: true,
-      color: showTotalSent ? '#90caf9' : '#4caf50'
+      color: '#fff'
     },
-    margin: { l: 50, r: 60, t: 30, b: 50 },
+    margin: { l: 50, r: 50, t: 30, b: 50 },
     hovermode: 'x unified',
     dragmode: 'pan',
-    showlegend: false
+    showlegend: true,
+    legend: {
+      x: 0.01,
+      y: 0.99,
+      bgcolor: 'rgba(30,30,30,0.9)',
+      bordercolor: '#555',
+      borderwidth: 1,
+      font: { size: 11 }
+    }
   };
 
-  // Add second y-axis only if both are visible
-  if (showTotalSent && showAvgDevice) {
-    layout.yaxis2 = {
-      title: 'Avg per Device',
-      overlaying: 'y',
-      side: 'right',
-      color: '#4caf50',
-      showgrid: false
-    };
-  }
+  // Add additional y-axes if multiple metrics selected
+  const colors = ['#90caf9', '#4caf50', '#ff9800', '#ab47bc', '#26c6da'];
+  let colorIdx = 0;
+  
+  traces.forEach((trace, idx) => {
+    if (idx > 0 && trace.yaxis !== 'y') {
+      const yaxisNum = trace.yaxis.replace('y', '');
+      layout[`yaxis${yaxisNum}`] = {
+        overlaying: 'y',
+        side: idx % 2 === 0 ? 'right' : 'left',
+        position: idx > 2 ? (idx % 2 === 0 ? 0.95 - (idx * 0.05) : 0.05 + (idx * 0.05)) : undefined,
+        color: colors[colorIdx % colors.length],
+        showgrid: false
+      };
+      colorIdx++;
+    }
+  });
 
   const config = {
     responsive: true,
@@ -365,6 +471,9 @@ function updateChart() {
 // Checkbox events
 document.getElementById('check-total-sent').addEventListener('change', updateChart);
 document.getElementById('check-avg-device').addEventListener('change', updateChart);
+document.getElementById('check-daily-growth').addEventListener('change', updateChart);
+document.getElementById('check-efficiency-growth').addEventListener('change', updateChart);
+document.getElementById('check-active-devices').addEventListener('change', updateChart);
 
 // Manual refresh
 async function refreshAll() {
