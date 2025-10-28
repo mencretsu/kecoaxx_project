@@ -222,23 +222,33 @@ async function fetchApiKeysCount() {
   }
 }
 
-// Fetch Sent History with Plotly
+// Fetch Sent History with Plotly (2 lines: Total Sent & Avg per Device)
 async function fetchSentHistory() {
   try {
     const snapshot = await get(sentHistoryRef);
     const allDates = [];
     snapshot.forEach(child => { 
-      allDates.push({ date: child.key, total: child.val().totalSent ?? 0 }); 
+      const data = child.val();
+      allDates.push({ 
+        date: child.key, 
+        totalSent: data.totalSent ?? 0,
+        activeDevices: data.activeDevices ?? 0
+      }); 
     });
     
     const labels = allDates.map(d => d.date);
-    const dataPoints = allDates.map(d => d.total);
+    const totalSentData = allDates.map(d => d.totalSent);
+    const avgPerDeviceData = allDates.map(d => {
+      return d.activeDevices > 0 ? (d.totalSent / d.activeDevices).toFixed(2) : 0;
+    });
 
-    const trace = {
+    // Trace 1: Total Sent
+    const traceTotalSent = {
       x: labels,
-      y: dataPoints,
+      y: totalSentData,
       type: 'scatter',
       mode: 'lines+markers',
+      name: 'Total Sent',
       line: { 
         color: '#90caf9', 
         width: 2,
@@ -249,8 +259,26 @@ async function fetchSentHistory() {
         size: 6 
       },
       fill: 'tozeroy',
-      fillcolor: 'rgba(144,202,249,0.2)',
-      name: 'History'
+      fillcolor: 'rgba(144,202,249,0.2)'
+    };
+
+    // Trace 2: Average per Device
+    const traceAvgPerDevice = {
+      x: labels,
+      y: avgPerDeviceData,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Avg per Device',
+      yaxis: 'y2',
+      line: { 
+        color: '#4caf50', 
+        width: 2,
+        shape: 'spline'
+      },
+      marker: { 
+        color: '#4caf50', 
+        size: 6 
+      }
     };
 
     const layout = {
@@ -263,13 +291,28 @@ async function fetchSentHistory() {
         color: '#fff'
       },
       yaxis: {
+        title: 'Total Sent',
         gridcolor: 'rgba(255,255,255,0.1)',
         showgrid: true,
-        color: '#fff'
+        color: '#90caf9'
       },
-      margin: { l: 50, r: 30, t: 30, b: 50 },
+      yaxis2: {
+        title: 'Avg per Device',
+        overlaying: 'y',
+        side: 'right',
+        color: '#4caf50',
+        showgrid: false
+      },
+      margin: { l: 50, r: 60, t: 30, b: 50 },
       hovermode: 'x unified',
-      dragmode: 'pan'
+      dragmode: 'pan',
+      legend: {
+        x: 0.01,
+        y: 0.99,
+        bgcolor: 'rgba(30,30,30,0.8)',
+        bordercolor: '#555',
+        borderwidth: 1
+      }
     };
 
     const config = {
@@ -280,7 +323,7 @@ async function fetchSentHistory() {
       displaylogo: false
     };
 
-    Plotly.newPlot('sentChart', [trace], layout, config);
+    Plotly.newPlot('sentChart', [traceTotalSent, traceAvgPerDevice], layout, config);
   } catch (err) {
     console.error("Error history:", err);
   }
