@@ -21,6 +21,8 @@ th.sortable { cursor:pointer; }
 .stats { display:flex; gap:16px; margin-bottom:10px; flex-wrap:wrap; }
 .stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
 .stat-box span { font-weight:bold; color:#90caf9; }
+.stat-box.clickable { cursor:pointer; transition:background 0.2s; }
+.stat-box.clickable:hover { background:#2a2a2a; }
 canvas { display:block; max-width:100%; }
 button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
 .green-dot {
@@ -42,7 +44,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   <span class="green-dot"></span>
   Active Devices: <span id="stat-active">0</span>
 </div>
-  <div class="stat-box" id="total-sent-box" style="cursor: pointer;" title="sent history">
+  <div class="stat-box clickable" id="total-sent-box" title="Klik untuk lihat history">
     Total Sent: <span id="stat-sent">0</span>
   </div>
   <div class="stat-box">Total API: <span id="stat-totalapi">0</span></div>
@@ -81,7 +83,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   </table>
 </div>
 
-<br><br>-- Stats --<br>
+<br><br><div id="history-section">-- Stats --</div><br>
 <div style="overflow-x:auto;">
   <canvas id="sentChart" height="200"></canvas>
 </div>
@@ -305,6 +307,11 @@ refreshAll();
 // Button event
 document.getElementById("refreshBtn").addEventListener("click", refreshAll);
 document.getElementById("resetZoom").addEventListener("click", () => { if (sentChart) sentChart.resetZoom(); });
+
+// Click Total Sent box to scroll to history
+document.getElementById("total-sent-box").addEventListener("click", () => {
+  document.getElementById("history-section").scrollIntoView({ behavior: "smooth", block: "start" });
+});
 
 // Filters
 [searchInput, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
