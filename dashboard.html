@@ -34,56 +34,34 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 }
 #sentChart { width: 100%; height: 300px; }
 
-/* Toggle Buttons */
-.chart-toggles { 
+/* Chart Checkboxes */
+.chart-controls { 
   display: flex; 
-  gap: 10px; 
+  gap: 16px; 
   margin-bottom: 12px; 
   flex-wrap: wrap;
 }
-.toggle-btn {
-  padding: 8px 16px;
-  border: 2px solid;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  font-weight: 500;
-  transition: all 0.2s;
+.chart-checkbox {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
 }
-.toggle-btn.total-sent {
-  border-color: #90caf9;
-  background: rgba(144,202,249,0.2);
-  color: #90caf9;
+.chart-checkbox input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #90caf9;
 }
-.toggle-btn.total-sent.active {
-  background: #90caf9;
-  color: #121212;
+.chart-checkbox.avg input[type="checkbox"] {
+  accent-color: #4caf50;
 }
-.toggle-btn.avg-device {
-  border-color: #4caf50;
-  background: rgba(76,175,80,0.2);
-  color: #4caf50;
-}
-.toggle-btn.avg-device.active {
-  background: #4caf50;
-  color: #121212;
-}
-.toggle-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-}
-.toggle-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  transition: all 0.2s;
-}
-.toggle-btn.active .toggle-indicator {
-  background: currentColor;
+.chart-checkbox label {
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #e0e0e0;
 }
 </style>
 </head>
@@ -137,14 +115,14 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 
 <br><br><div id="history-section">-- Stats --</div><br>
 
-<div class="chart-toggles">
-  <div class="toggle-btn total-sent active" id="toggle-total-sent">
-    <span class="toggle-indicator"></span>
-    <span>Total Sent</span>
+<div class="chart-controls">
+  <div class="chart-checkbox">
+    <input type="checkbox" id="check-total-sent" checked>
+    <label for="check-total-sent">Total Sent</label>
   </div>
-  <div class="toggle-btn avg-device active" id="toggle-avg-device">
-    <span class="toggle-indicator"></span>
-    <span>Avg per Device</span>
+  <div class="chart-checkbox avg">
+    <input type="checkbox" id="check-avg-device" checked>
+    <label for="check-avg-device">Avg per Device</label>
   </div>
 </div>
 
@@ -183,12 +161,6 @@ const statTotalApi = document.getElementById("stat-totalapi");
 // Table & Sorting
 let devicesData = [];
 let sortSentAsc = false;
-
-// Chart visibility state
-let chartVisibility = {
-  totalSent: true,
-  avgDevice: true
-};
 
 // Render Table
 function renderTable() {
@@ -313,11 +285,14 @@ async function fetchSentHistory() {
   }
 }
 
-// Update chart based on visibility
+// Update chart based on checkboxes
 function updateChart() {
+  const showTotalSent = document.getElementById('check-total-sent').checked;
+  const showAvgDevice = document.getElementById('check-avg-device').checked;
+  
   const traces = [];
   
-  if (chartVisibility.totalSent) {
+  if (showTotalSent) {
     traces.push({
       x: chartData.labels,
       y: chartData.totalSentData,
@@ -331,14 +306,14 @@ function updateChart() {
     });
   }
 
-  if (chartVisibility.avgDevice) {
+  if (showAvgDevice) {
     traces.push({
       x: chartData.labels,
       y: chartData.avgPerDeviceData,
       type: 'scatter',
       mode: 'lines+markers',
-      name: 'Average',
-      yaxis: chartVisibility.totalSent ? 'y2' : 'y',
+      name: 'Avg per Device',
+      yaxis: showTotalSent ? 'y2' : 'y',
       line: { color: '#4caf50', width: 2, shape: 'spline' },
       marker: { color: '#4caf50', size: 6 }
     });
@@ -354,10 +329,10 @@ function updateChart() {
       color: '#fff'
     },
     yaxis: {
-      title: chartVisibility.totalSent ? 'Total Sent' : 'Avg per Device',
+      title: showTotalSent ? 'Total Sent' : 'Avg per Device',
       gridcolor: 'rgba(255,255,255,0.1)',
       showgrid: true,
-      color: chartVisibility.totalSent ? '#90caf9' : '#4caf50'
+      color: showTotalSent ? '#90caf9' : '#4caf50'
     },
     margin: { l: 50, r: 60, t: 30, b: 50 },
     hovermode: 'x unified',
@@ -366,9 +341,9 @@ function updateChart() {
   };
 
   // Add second y-axis only if both are visible
-  if (chartVisibility.totalSent && chartVisibility.avgDevice) {
+  if (showTotalSent && showAvgDevice) {
     layout.yaxis2 = {
-      title: 'Average',
+      title: 'Avg per Device',
       overlaying: 'y',
       side: 'right',
       color: '#4caf50',
@@ -387,18 +362,9 @@ function updateChart() {
   Plotly.newPlot('sentChart', traces, layout, config);
 }
 
-// Toggle buttons
-document.getElementById('toggle-total-sent').addEventListener('click', function() {
-  chartVisibility.totalSent = !chartVisibility.totalSent;
-  this.classList.toggle('active');
-  updateChart();
-});
-
-document.getElementById('toggle-avg-device').addEventListener('click', function() {
-  chartVisibility.avgDevice = !chartVisibility.avgDevice;
-  this.classList.toggle('active');
-  updateChart();
-});
+// Checkbox events
+document.getElementById('check-total-sent').addEventListener('change', updateChart);
+document.getElementById('check-avg-device').addEventListener('change', updateChart);
 
 // Manual refresh
 async function refreshAll() {
