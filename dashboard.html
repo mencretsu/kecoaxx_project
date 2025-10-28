@@ -33,6 +33,58 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   margin-right: 6px;
 }
 #sentChart { width: 100%; height: 300px; }
+
+/* Toggle Buttons */
+.chart-toggles { 
+  display: flex; 
+  gap: 10px; 
+  margin-bottom: 12px; 
+  flex-wrap: wrap;
+}
+.toggle-btn {
+  padding: 8px 16px;
+  border: 2px solid;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.toggle-btn.total-sent {
+  border-color: #90caf9;
+  background: rgba(144,202,249,0.2);
+  color: #90caf9;
+}
+.toggle-btn.total-sent.active {
+  background: #90caf9;
+  color: #121212;
+}
+.toggle-btn.avg-device {
+  border-color: #4caf50;
+  background: rgba(76,175,80,0.2);
+  color: #4caf50;
+}
+.toggle-btn.avg-device.active {
+  background: #4caf50;
+  color: #121212;
+}
+.toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+.toggle-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  transition: all 0.2s;
+}
+.toggle-btn.active .toggle-indicator {
+  background: currentColor;
+}
 </style>
 </head>
 <body>
@@ -84,6 +136,18 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 </div>
 
 <br><br><div id="history-section">-- Stats --</div><br>
+
+<div class="chart-toggles">
+  <div class="toggle-btn total-sent active" id="toggle-total-sent">
+    <span class="toggle-indicator"></span>
+    <span>Total Sent</span>
+  </div>
+  <div class="toggle-btn avg-device active" id="toggle-avg-device">
+    <span class="toggle-indicator"></span>
+    <span>Avg per Device</span>
+  </div>
+</div>
+
 <div id="sentChart"></div>
 
 <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -118,7 +182,13 @@ const statTotalApi = document.getElementById("stat-totalapi");
 
 // Table & Sorting
 let devicesData = [];
-let sortSentAsc = false; // Default dari tertinggi ke terkecil
+let sortSentAsc = false;
+
+// Chart visibility state
+let chartVisibility = {
+  totalSent: true,
+  avgDevice: true
+};
 
 // Render Table
 function renderTable() {
@@ -132,31 +202,26 @@ function renderTable() {
     return name.includes(searchTerm) || app.includes(searchTerm) || version.includes(searchTerm);
   });
   
-  // Filter by status
   filtered = filtered.filter(d => {
     const sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
     const isActive = sent > 0;
     
     if (statusFilter.value === "active") return isActive;
     if (statusFilter.value === "inactive") return !isActive;
-    return true; // "all"
+    return true;
   });
   
-  // SORTING DEFAULT: dari sent tertinggi ke terkecil
   filtered.sort((a, b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
     const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
-    return valB - valA; // Tertinggi ke terkecil
+    return valB - valA;
   });
   
   filtered.forEach(d => {
     let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-    
-    // Format ranges
     const rangeStart = d.rangeStart !== undefined ? d.rangeStart : "-";
     const rangeEnd = d.rangeEnd !== undefined ? d.rangeEnd : "-";
     const rangeDisplay = (rangeStart !== "-" && rangeEnd !== "-") ? `${rangeStart}-${rangeEnd}` : "-";
-    
     const val = v => v ? v : "-";
     
     table.innerHTML += `
@@ -184,17 +249,13 @@ async function fetchDevices() {
       const d = child.val();
       d.id = child.key;
 
-      // Hitung sent secara numerik untuk sorting & total
       let sentValue = 0;
       if (timeRange.value === "today" && d.hasOwnProperty('sentToday')) sentValue = d.sentToday;
       else if (timeRange.value === "all" && d.hasOwnProperty('totalSent')) sentValue = d.totalSent;
 
       if (sentValue > 0) activeCount++;
       totalSent += sentValue;
-
-      // Simpan nilai numerik untuk sorting nanti
       d._sentValue = sentValue;
-
       devicesData.push(d);
     });
 
@@ -207,14 +268,11 @@ async function fetchDevices() {
   }
 }
 
-
 async function fetchApiKeysCount() {
   try {
     const snapshot = await get(apiKeysRef);
     let apiCount = 0;
-    snapshot.forEach(() => {
-      apiCount++;
-    });
+    snapshot.forEach(() => { apiCount++; });
     statTotalApi.textContent = apiCount;
   } catch (err) {
     console.error("Error API keys:", err);
@@ -222,7 +280,14 @@ async function fetchApiKeysCount() {
   }
 }
 
-// Fetch Sent History with Plotly (2 lines: Total Sent & Avg per Device)
+// Store chart data globally
+let chartData = {
+  labels: [],
+  totalSentData: [],
+  avgPerDeviceData: []
+};
+
+// Fetch Sent History
 async function fetchSentHistory() {
   try {
     const snapshot = await get(sentHistoryRef);
@@ -236,98 +301,104 @@ async function fetchSentHistory() {
       }); 
     });
     
-    const labels = allDates.map(d => d.date);
-    const totalSentData = allDates.map(d => d.totalSent);
-    const avgPerDeviceData = allDates.map(d => {
+    chartData.labels = allDates.map(d => d.date);
+    chartData.totalSentData = allDates.map(d => d.totalSent);
+    chartData.avgPerDeviceData = allDates.map(d => {
       return d.activeDevices > 0 ? (d.totalSent / d.activeDevices).toFixed(2) : 0;
     });
 
-    // Trace 1: Total Sent
-    const traceTotalSent = {
-      x: labels,
-      y: totalSentData,
-      type: 'scatter',
-      mode: 'lines+markers',
-      name: 'Total Sent',
-      line: { 
-        color: '#90caf9', 
-        width: 2,
-        shape: 'spline'
-      },
-      marker: { 
-        color: '#90caf9', 
-        size: 6 
-      },
-      fill: 'tozeroy',
-      fillcolor: 'rgba(144,202,249,0.2)'
-    };
-
-    // Trace 2: Average per Device
-    const traceAvgPerDevice = {
-      x: labels,
-      y: avgPerDeviceData,
-      type: 'scatter',
-      mode: 'lines+markers',
-      name: 'Average',
-      yaxis: 'y2',
-      line: { 
-        color: '#4caf50', 
-        width: 2,
-        shape: 'spline'
-      },
-      marker: { 
-        color: '#4caf50', 
-        size: 6 
-      }
-    };
-
-    const layout = {
-      paper_bgcolor: '#121212',
-      plot_bgcolor: '#1e1e1e',
-      font: { color: '#e0e0e0' },
-      xaxis: {
-        gridcolor: 'rgba(255,255,255,0.1)',
-        showgrid: true,
-        color: '#fff'
-      },
-      yaxis: {
-        title: 'Total Sent',
-        gridcolor: 'rgba(255,255,255,0.1)',
-        showgrid: true,
-        color: '#90caf9'
-      },
-      yaxis2: {
-        title: 'Avg per Device',
-        overlaying: 'y',
-        side: 'right',
-        color: '#4caf50',
-        showgrid: false
-      },
-      margin: { l: 50, r: 60, t: 30, b: 50 },
-      hovermode: 'x unified',
-      dragmode: 'pan',
-      legend: {
-        x: 0.01,
-        y: 0.99,
-        bgcolor: 'rgba(30,30,30,0.8)',
-        bordercolor: '#555',
-        borderwidth: 1
-      }
-    };
-
-    const config = {
-      responsive: true,
-      displayModeBar: true,
-      modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-      scrollZoom: true,
-      displaylogo: false
-    };
-
-    Plotly.newPlot('sentChart', [traceTotalSent, traceAvgPerDevice], layout, config);
+    updateChart();
   } catch (err) {
     console.error("Error history:", err);
   }
 }
+
+// Update chart based on visibility
+function updateChart() {
+  const traces = [];
+  
+  if (chartVisibility.totalSent) {
+    traces.push({
+      x: chartData.labels,
+      y: chartData.totalSentData,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Total Sent',
+      line: { color: '#90caf9', width: 2, shape: 'spline' },
+      marker: { color: '#90caf9', size: 6 },
+      fill: 'tozeroy',
+      fillcolor: 'rgba(144,202,249,0.2)'
+    });
+  }
+
+  if (chartVisibility.avgDevice) {
+    traces.push({
+      x: chartData.labels,
+      y: chartData.avgPerDeviceData,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'Average',
+      yaxis: chartVisibility.totalSent ? 'y2' : 'y',
+      line: { color: '#4caf50', width: 2, shape: 'spline' },
+      marker: { color: '#4caf50', size: 6 }
+    });
+  }
+
+  const layout = {
+    paper_bgcolor: '#121212',
+    plot_bgcolor: '#1e1e1e',
+    font: { color: '#e0e0e0' },
+    xaxis: {
+      gridcolor: 'rgba(255,255,255,0.1)',
+      showgrid: true,
+      color: '#fff'
+    },
+    yaxis: {
+      title: chartVisibility.totalSent ? 'Total Sent' : 'Avg per Device',
+      gridcolor: 'rgba(255,255,255,0.1)',
+      showgrid: true,
+      color: chartVisibility.totalSent ? '#90caf9' : '#4caf50'
+    },
+    margin: { l: 50, r: 60, t: 30, b: 50 },
+    hovermode: 'x unified',
+    dragmode: 'pan',
+    showlegend: false
+  };
+
+  // Add second y-axis only if both are visible
+  if (chartVisibility.totalSent && chartVisibility.avgDevice) {
+    layout.yaxis2 = {
+      title: 'Average',
+      overlaying: 'y',
+      side: 'right',
+      color: '#4caf50',
+      showgrid: false
+    };
+  }
+
+  const config = {
+    responsive: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    scrollZoom: true,
+    displaylogo: false
+  };
+
+  Plotly.newPlot('sentChart', traces, layout, config);
+}
+
+// Toggle buttons
+document.getElementById('toggle-total-sent').addEventListener('click', function() {
+  chartVisibility.totalSent = !chartVisibility.totalSent;
+  this.classList.toggle('active');
+  updateChart();
+});
+
+document.getElementById('toggle-avg-device').addEventListener('click', function() {
+  chartVisibility.avgDevice = !chartVisibility.avgDevice;
+  this.classList.toggle('active');
+  updateChart();
+});
 
 // Manual refresh
 async function refreshAll() {
