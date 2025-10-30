@@ -5,53 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kecoaxx Dashboard</title>
 <style>
-body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:10px; }
-h1 { text-align:center; margin:10px 0 18px 0; font-size:1.4rem; color:#fff; }
-.table-container { overflow-x:auto; margin-bottom:10px; }
-table { width:100%; min-width:350px; border-collapse:collapse; background:#1e1e1e; border-radius:8px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
-thead { background:#272727; }
-th, td { padding:6px 10px; text-align:left; cursor:default; }
-th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; }
+body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:8px; }
+h1 { text-align:center; margin:8px 0 12px 0; font-size:1.2rem; color:#fff; }
+.table-container { overflow-x:auto; margin-bottom:10px; -webkit-overflow-scrolling:touch; }
+table { width:100%; border-collapse:collapse; background:#1e1e1e; border-radius:6px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
+thead { background:#272727; position:sticky; top:0; z-index:10; }
+th, td { padding:6px 4px; text-align:left; cursor:default; }
+th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; font-size:0.65rem; }
 tr:nth-child(even) { background:#2a2a2a; }
 tr:hover { background:#333; }
-td { border-bottom:1px solid #2c2c2c; vertical-align:middle; }
-.empty { text-align:center; padding:16px; color:#888; }
-.filters { margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap; }
+td { border-bottom:1px solid #2c2c2c; vertical-align:middle; font-size:0.68rem; }
+.empty { text-align:center; padding:12px; color:#888; }
+.filters { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }
+.filters input, .filters select { font-size:0.75rem; padding:6px 8px; background:#1e1e1e; color:#e0e0e0; border:1px solid #333; border-radius:4px; flex:1; min-width:100px; }
 th.sortable { cursor:pointer; }
-.stats { display:flex; gap:16px; margin-bottom:10px; flex-wrap:wrap; }
-.stat-box { background:#1e1e1e; padding:10px 16px; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.8rem; }
-.stat-box span { font-weight:bold; color:#90caf9; }
+.stats { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.stat-box { background:#1e1e1e; padding:8px 12px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; flex:1; min-width:90px; text-align:center; }
+.stat-box .label { font-size:0.65rem; opacity:0.8; margin-bottom:2px; }
+.stat-box .value { font-weight:bold; color:#90caf9; display:block; font-size:0.85rem; margin-top:2px; }
 .stat-box.clickable { cursor:pointer; transition:background 0.2s; }
 .stat-box.clickable:hover { background:#2a2a2a; }
-button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; border:none; border-radius:6px; cursor:pointer; }
-.green-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  background: #4caf50;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-#sentChart { width: 100%; height: 350px; }
+button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; border:none; border-radius:4px; cursor:pointer; font-size:0.75rem; width:100%; }
+#sentChart { width: 100%; height: 280px; }
 
-/* Chart Checkboxes */
 .chart-controls { 
-  display: flex; 
-  gap: 16px; 
-  margin-bottom: 12px; 
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px; 
+  margin-bottom: 10px;
 }
 .chart-checkbox {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   cursor: pointer;
   user-select: none;
 }
 .chart-checkbox input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
+  flex-shrink: 0;
 }
 .chart-checkbox.c-blue input[type="checkbox"] { accent-color: #90caf9; }
 .chart-checkbox.c-green input[type="checkbox"] { accent-color: #4caf50; }
@@ -61,9 +55,106 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 
 .chart-checkbox label {
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: #e0e0e0;
+  line-height: 1.2;
+}
+
+.battery-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 45px;
+}
+
+.battery-simple {
+  width: 32px;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.battery-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.battery-text {
+  font-size: 0.58rem;
+  color: #aaa;
+  min-width: 22px;
+  text-align: center;
+}
+
+.battery-simple[data-level="high"] .battery-fill { background: #4caf50; }
+.battery-simple[data-level="medium"] .battery-fill { background: #ff9800; }
+.battery-simple[data-level="low"] .battery-fill { background: #f44336; }
+.battery-simple[data-level="critical"] .battery-fill { background: #d32f2f; }
+.battery-simple[data-level="unknown"] .battery-fill { background: #666; }
+
+.battery-tooltip {
+  position: relative;
+  cursor: help;
+}
+
+.battery-tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  z-index: 1000;
+  margin-bottom: 5px;
+}
+
+@media (max-width: 768px) {
+  body { padding: 6px; }
+  h1 { font-size: 1.1rem; margin: 6px 0 10px 0; }
+  table { font-size: 0.65rem; }
+  th, td { padding: 5px 3px; }
+  th { font-size: 0.62rem; }
+  td { font-size: 0.64rem; }
+  .battery-container { min-width: 40px; }
+  .battery-simple { width: 28px; height: 5px; }
+  .battery-text { font-size: 0.55rem; min-width: 20px; }
+  .stats { gap: 6px; margin-bottom: 6px; }
+  .stat-box { padding: 6px 8px; font-size: 0.65rem; min-width: 80px; }
+  .stat-box .value { font-size: 0.8rem; }
+  .filters { gap: 5px; margin-bottom: 6px; }
+  .filters input, .filters select { font-size: 0.7rem; padding: 5px 6px; min-width: 90px; }
+  button { padding: 5px 8px; font-size: 0.7rem; }
+  #sentChart { height: 240px; }
+  .chart-controls { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
+  .chart-checkbox input[type="checkbox"] { width: 14px; height: 14px; }
+  .chart-checkbox label { font-size: 0.7rem; }
+}
+
+@media (max-width: 480px) {
+  body { padding: 4px; }
+  h1 { font-size: 1rem; margin: 5px 0 8px 0; }
+  table { font-size: 0.6rem; }
+  th, td { padding: 4px 2px; }
+  th { font-size: 0.58rem; }
+  td { font-size: 0.6rem; }
+  .battery-simple { width: 24px; height: 4px; }
+  .battery-text { font-size: 0.52rem; min-width: 18px; }
+  .stat-box { padding: 5px 6px; font-size: 0.6rem; min-width: 70px; }
+  .stat-box .value { font-size: 0.75rem; }
+  .filters input, .filters select { font-size: 0.65rem; padding: 4px 5px; }
+  button { padding: 4px 6px; font-size: 0.65rem; }
+  #sentChart { height: 200px; }
+  .chart-checkbox label { font-size: 0.65rem; }
 }
 </style>
 </head>
@@ -72,14 +163,18 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 <h1>Kecoaxx Dashboard</h1>
 
 <div class="stats">
-<div class="stat-box">
-  <span class="green-dot"></span>
-  Active Devices: <span id="stat-active">0</span>
-</div>
-  <div class="stat-box clickable" id="total-sent-box" title="Klik untuk lihat history">
-    Total Sent: <span id="stat-sent">0</span>
+  <div class="stat-box">
+    <div class="label">Active</div>
+    <span class="value" id="stat-active">0</span>
   </div>
-  <div class="stat-box">Total API: <span id="stat-totalapi">0</span></div>
+  <div class="stat-box clickable" id="total-sent-box" title="Klik untuk lihat history">
+    <div class="label">Total Sent</div>
+    <span class="value" id="stat-sent">0</span>
+  </div>
+  <div class="stat-box">
+    <div class="label">Total API</div>
+    <span class="value" id="stat-totalapi">0</span>
+  </div>
 </div>
 
 <div class="filters">
@@ -102,10 +197,10 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
       <tr>
         <th>Nama</th>
         <th class="sortable">Sent ▲▼</th>
-        <th>Device</th>
-        <th>Bot</th>
+        <th>Bat</th>
         <th>App</th>
-        <th>API Ranges</th>
+        <th>Dev</th>
+        <th>Bot</th>
         <th>Status</th>
       </tr>
     </thead>
@@ -115,7 +210,7 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
   </table>
 </div>
 
-<br><br><div id="history-section">-- Stats --</div><br>
+<div id="history-section" style="text-align:center;font-weight:500;font-size:0.9rem;color:#90caf9;margin:16px 0 10px 0;">-- Stats --</div>
 
 <div class="chart-controls">
   <div class="chart-checkbox c-blue">
@@ -147,7 +242,6 @@ button { margin-top:10px; padding:6px 12px; background:#90caf9; color:#121212; b
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-database.js";
 
-// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyBWrIDwTn4Byd9gZdYeGtwVUe0q2f2KYT4",
   authDomain: "kecoaxx-db898.firebaseapp.com",
@@ -163,7 +257,7 @@ const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
 const sentHistoryRef = ref(db, "sentHistory");
 const apiKeysRef = ref(db, "apiKeys/list");
-// DOM
+
 const searchInput = document.getElementById("searchInput");
 const timeRange = document.getElementById("timeRange");
 const statusFilter = document.getElementById("statusFilter");
@@ -172,11 +266,49 @@ const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
 const statTotalApi = document.getElementById("stat-totalapi");
 
-// Table & Sorting
 let devicesData = [];
 let sortSentAsc = false;
 
-// Render Table
+function renderBattery(batteryLevel) {
+  if (batteryLevel === undefined || batteryLevel === null) {
+    return `
+      <div class="battery-tooltip" data-tooltip="Unknown">
+        <div class="battery-container">
+          <div class="battery-simple" data-level="unknown">
+            <div class="battery-fill" style="width: 0%"></div>
+          </div>
+          <div class="battery-text">-</div>
+        </div>
+      </div>
+    `;
+  }
+
+  let levelClass = "unknown";
+  let width = 0;
+  let displayText = "-";
+
+  if (batteryLevel >= 0 && batteryLevel <= 100) {
+    width = batteryLevel;
+    displayText = `${batteryLevel}%`;
+    
+    if (batteryLevel >= 70) levelClass = "high";
+    else if (batteryLevel >= 30) levelClass = "medium";
+    else if (batteryLevel >= 15) levelClass = "low";
+    else levelClass = "critical";
+  }
+
+  return `
+    <div class="battery-tooltip" data-tooltip="Baterai: ${displayText}">
+      <div class="battery-container">
+        <div class="battery-simple" data-level="${levelClass}">
+          <div class="battery-fill" style="width: ${width}%"></div>
+        </div>
+        <div class="battery-text">${displayText}</div>
+      </div>
+    </div>
+  `;
+}
+
 function renderTable() {
   table.innerHTML = "";
   let filtered = devicesData.filter(d => {
@@ -205,26 +337,26 @@ function renderTable() {
   
   filtered.forEach(d => {
     let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-    const rangeStart = d.rangeStart !== undefined ? d.rangeStart : "-";
-    const rangeEnd = d.rangeEnd !== undefined ? d.rangeEnd : "-";
-    const rangeDisplay = (rangeStart !== "-" && rangeEnd !== "-") ? `${rangeStart}-${rangeEnd}` : "-";
     const val = v => v ? v : "-";
+    
+    const batteryLevel = d.battery !== undefined ? d.battery : 
+                        d.batteryLevel !== undefined ? d.batteryLevel : 
+                        null;
     
     table.innerHTML += `
       <tr>
         <td>${val(d.botName)}</td>
         <td>${val(sent)}</td>
+        <td>${renderBattery(batteryLevel)}</td>
+        <td>${val(d.pkgName)}</td>
         <td>${val(d.deviceName || d.id)}</td>
         <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
-        <td>${val(d.pkgName)}</td>
-        <td>${val(rangeDisplay)}</td>
         <td>${val(d.status)}</td>
       </tr>`;
   });
   if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
 }
 
-// Fetch Devices
 async function fetchDevices() {
   try {
     const snapshot = await get(devicesRef);
@@ -266,7 +398,6 @@ async function fetchApiKeysCount() {
   }
 }
 
-// Store chart data globally
 let chartData = {
   labels: [],
   totalSentData: [],
@@ -276,7 +407,6 @@ let chartData = {
   activeDevicesData: []
 };
 
-// Fetch Sent History
 async function fetchSentHistory() {
   try {
     const snapshot = await get(sentHistoryRef);
@@ -290,7 +420,6 @@ async function fetchSentHistory() {
       }); 
     });
     
-    // Sort by date
     allDates.sort((a, b) => a.date.localeCompare(b.date));
     
     chartData.labels = allDates.map(d => d.date);
@@ -300,7 +429,6 @@ async function fetchSentHistory() {
       return d.activeDevices > 0 ? parseFloat((d.totalSent / d.activeDevices).toFixed(2)) : 0;
     });
 
-    // Calculate Daily Growth % (Total Sent)
     chartData.dailyGrowthData = allDates.map((d, i) => {
       if (i === 0) return 0;
       const prev = allDates[i - 1].totalSent;
@@ -308,7 +436,6 @@ async function fetchSentHistory() {
       return parseFloat((((d.totalSent - prev) / prev) * 100).toFixed(2));
     });
 
-    // Calculate Efficiency Growth % (Avg per Device)
     chartData.efficiencyGrowthData = allDates.map((d, i) => {
       if (i === 0) return 0;
       const currAvg = d.activeDevices > 0 ? d.totalSent / d.activeDevices : 0;
@@ -323,7 +450,6 @@ async function fetchSentHistory() {
   }
 }
 
-// Update chart based on checkboxes
 function updateChart() {
   const showTotalSent = document.getElementById('check-total-sent').checked;
   const showAvgDevice = document.getElementById('check-avg-device').checked;
@@ -332,10 +458,8 @@ function updateChart() {
   const showActiveDevices = document.getElementById('check-active-devices').checked;
   
   const traces = [];
-  const yaxisConfig = {};
   let yaxisCounter = 1;
 
-  // Helper to get next yaxis
   const getYAxis = () => {
     if (yaxisCounter === 1) {
       yaxisCounter++;
@@ -431,7 +555,6 @@ function updateChart() {
     showlegend: false
   };
 
-  // Add additional y-axes if multiple metrics selected
   const colors = ['#90caf9', '#4caf50', '#ff9800', '#ab47bc', '#26c6da'];
   let colorIdx = 0;
   
@@ -460,36 +583,29 @@ function updateChart() {
   Plotly.newPlot('sentChart', traces, layout, config);
 }
 
-// Checkbox events
 document.getElementById('check-total-sent').addEventListener('change', updateChart);
 document.getElementById('check-avg-device').addEventListener('change', updateChart);
 document.getElementById('check-daily-growth').addEventListener('change', updateChart);
 document.getElementById('check-efficiency-growth').addEventListener('change', updateChart);
 document.getElementById('check-active-devices').addEventListener('change', updateChart);
 
-// Manual refresh
 async function refreshAll() {
   await fetchDevices();
   await fetchApiKeysCount();
   await fetchSentHistory();
 }
 
-// Init
 refreshAll();
 
-// Button event
 document.getElementById("refreshBtn").addEventListener("click", refreshAll);
 
-// Click Total Sent box to scroll to history
 document.getElementById("total-sent-box").addEventListener("click", () => {
   document.getElementById("history-section").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-// Filters
 [searchInput, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
 searchInput.addEventListener("input", renderTable);
 
-// Sort column
 document.querySelector("th.sortable").addEventListener("click", () => {
   devicesData.sort((a, b) => {
     const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
