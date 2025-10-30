@@ -61,45 +61,28 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   line-height: 1.2;
 }
 
+/* SVG Battery Styles */
 .battery-container {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-width: 45px;
+  justify-content: center;
+  min-width: 50px;
 }
 
-.battery-simple {
-  width: 32px;
-  height: 6px;
-  background: #333;
-  border-radius: 3px;
-  overflow: hidden;
-  position: relative;
+.battery-svg {
+  width: 50px;
+  height: 25px;
   flex-shrink: 0;
 }
 
-.battery-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
+.battery-svg.unknown {
+  opacity: 0.4;
 }
-
-.battery-text {
-  font-size: 0.58rem;
-  color: #aaa;
-  min-width: 22px;
-  text-align: center;
-}
-
-.battery-simple[data-level="high"] .battery-fill { background: #4caf50; }
-.battery-simple[data-level="medium"] .battery-fill { background: #ff9800; }
-.battery-simple[data-level="low"] .battery-fill { background: #f44336; }
-.battery-simple[data-level="critical"] .battery-fill { background: #d32f2f; }
-.battery-simple[data-level="unknown"] .battery-fill { background: #666; }
 
 .battery-tooltip {
   position: relative;
   cursor: help;
+  display: inline-block;
 }
 
 .battery-tooltip:hover::after {
@@ -116,6 +99,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   white-space: nowrap;
   z-index: 1000;
   margin-bottom: 5px;
+  pointer-events: none;
 }
 
 @media (max-width: 768px) {
@@ -125,9 +109,8 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   th, td { padding: 5px 3px; }
   th { font-size: 0.62rem; }
   td { font-size: 0.64rem; }
-  .battery-container { min-width: 40px; }
-  .battery-simple { width: 28px; height: 5px; }
-  .battery-text { font-size: 0.55rem; min-width: 20px; }
+  .battery-container { min-width: 45px; }
+  .battery-svg { width: 45px; height: 22px; }
   .stats { gap: 6px; margin-bottom: 6px; }
   .stat-box { padding: 6px 8px; font-size: 0.65rem; min-width: 80px; }
   .stat-box .value { font-size: 0.8rem; }
@@ -147,8 +130,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   th, td { padding: 4px 2px; }
   th { font-size: 0.58rem; }
   td { font-size: 0.6rem; }
-  .battery-simple { width: 24px; height: 4px; }
-  .battery-text { font-size: 0.52rem; min-width: 18px; }
+  .battery-svg { width: 40px; height: 20px; }
   .stat-box { padding: 5px 6px; font-size: 0.6rem; min-width: 70px; }
   .stat-box .value { font-size: 0.75rem; }
   .filters input, .filters select { font-size: 0.65rem; padding: 4px 5px; }
@@ -269,41 +251,42 @@ const statTotalApi = document.getElementById("stat-totalapi");
 let devicesData = [];
 let sortSentAsc = false;
 
+// Render SVG Battery Icon
 function renderBattery(batteryLevel) {
-  if (batteryLevel === undefined || batteryLevel === null) {
+  if (batteryLevel === undefined || batteryLevel === null || batteryLevel < 0) {
     return `
       <div class="battery-tooltip" data-tooltip="Unknown">
         <div class="battery-container">
-          <div class="battery-simple" data-level="unknown">
-            <div class="battery-fill" style="width: 0%"></div>
-          </div>
-          <div class="battery-text">-</div>
+          <svg class="battery-svg unknown" viewBox="0 0 100 50">
+            <rect x="5" y="10" width="75" height="30" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
+            <rect x="80" y="18" width="8" height="14" rx="2" ry="2" fill="#666"/>
+            <text x="42.5" y="32" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#888" text-anchor="middle">?</text>
+          </svg>
         </div>
       </div>
     `;
   }
 
-  let levelClass = "unknown";
-  let width = 0;
-  let displayText = "-";
+  const clampedLevel = Math.max(0, Math.min(100, batteryLevel));
+  const fillWidth = (clampedLevel / 100) * 69;
+  
+  let fillColor = "#4caf50";
+  if (clampedLevel < 15) fillColor = "#d32f2f";
+  else if (clampedLevel < 30) fillColor = "#f44336";
+  else if (clampedLevel < 70) fillColor = "#ff9800";
 
-  if (batteryLevel >= 0 && batteryLevel <= 100) {
-    width = batteryLevel;
-    displayText = `${batteryLevel}%`;
-    
-    if (batteryLevel >= 70) levelClass = "high";
-    else if (batteryLevel >= 30) levelClass = "medium";
-    else if (batteryLevel >= 15) levelClass = "low";
-    else levelClass = "critical";
-  }
+  const textColor = "#fff";
+  const fontSize = clampedLevel === 100 ? "12" : "14";
 
   return `
-    <div class="battery-tooltip" data-tooltip="Baterai: ${displayText}">
+    <div class="battery-tooltip" data-tooltip="Baterai: ${clampedLevel}%">
       <div class="battery-container">
-        <div class="battery-simple" data-level="${levelClass}">
-          <div class="battery-fill" style="width: ${width}%"></div>
-        </div>
-        <div class="battery-text">${displayText}</div>
+        <svg class="battery-svg" viewBox="0 0 100 50">
+          <rect x="5" y="10" width="75" height="30" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
+          <rect x="80" y="18" width="8" height="14" rx="2" ry="2" fill="#666"/>
+          <rect x="8" y="13" width="${fillWidth}" height="24" rx="2" ry="2" fill="${fillColor}"/>
+          <text x="42.5" y="32" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle">${clampedLevel}%</text>
+        </svg>
       </div>
     </div>
   `;
