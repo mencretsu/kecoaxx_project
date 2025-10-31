@@ -70,8 +70,8 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
 }
 
 .battery-svg {
-  width: 26px;
-  height: 16px;
+  width: 24px;
+  height: 18px;
   flex-shrink: 0;
 }
 
@@ -110,7 +110,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   th { font-size: 0.62rem; }
   td { font-size: 0.64rem; }
   .battery-container { min-width: 24px; }
-  .battery-svg { width: 22px; height: 14px; }
+  .battery-svg { width: 20px; height: 16px; }
   .stats { gap: 6px; margin-bottom: 6px; }
   .stat-box { padding: 6px 8px; font-size: 0.65rem; min-width: 80px; }
   .stat-box .value { font-size: 0.8rem; }
@@ -130,7 +130,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   th, td { padding: 4px 2px; }
   th { font-size: 0.58rem; }
   td { font-size: 0.6rem; }
-  .battery-svg { width: 20px; height: 12px; }
+  .battery-svg { width: 18px; height: 14px; }
   .stat-box { padding: 5px 6px; font-size: 0.6rem; min-width: 70px; }
   .stat-box .value { font-size: 0.75rem; }
   .filters input, .filters select { font-size: 0.65rem; padding: 4px 5px; }
@@ -256,10 +256,10 @@ function renderBattery(batteryLevel) {
     return `
       <div class="battery-tooltip" data-tooltip="Unknown">
         <div class="battery-container">
-          <svg class="battery-svg unknown" viewBox="0 0 55 30">
-            <rect x="3" y="6" width="45" height="18" rx="2" ry="2" fill="none" stroke="#666" stroke-width="1.5"/>
-            <rect x="48" y="10" width="4" height="10" rx="1.5" ry="1.5" fill="#666"/>
-            <text x="25.5" y="18.5" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#888" text-anchor="middle">?</text>
+          <svg class="battery-svg unknown" viewBox="0 0 48 40">
+            <rect x="3" y="8" width="38" height="24" rx="2" ry="2" fill="none" stroke="#666" stroke-width="1.5"/>
+            <rect x="41" y="14" width="4" height="12" rx="1.5" ry="1.5" fill="#666"/>
+            <text x="22" y="24" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#888" text-anchor="middle">?</text>
           </svg>
         </div>
       </div>
@@ -267,7 +267,7 @@ function renderBattery(batteryLevel) {
   }
 
   const clampedLevel = Math.max(0, Math.min(100, batteryLevel));
-  const fillWidth = (clampedLevel / 100) * 39;
+  const fillWidth = (clampedLevel / 100) * 32;
   
   let fillColor = "#4caf50";
   if (clampedLevel < 15) fillColor = "#d32f2f";
@@ -275,16 +275,16 @@ function renderBattery(batteryLevel) {
   else if (clampedLevel < 70) fillColor = "#ff9800";
 
   const textColor = "#fff";
-  const fontSize = clampedLevel === 100 ? "11" : "12";
+  const fontSize = clampedLevel === 100 ? "12" : "14";
 
   return `
     <div class="battery-tooltip" data-tooltip="Baterai: ${clampedLevel}%">
       <div class="battery-container">
-        <svg class="battery-svg" viewBox="0 0 55 30">
-          <rect x="3" y="6" width="45" height="18" rx="2" ry="2" fill="none" stroke="#666" stroke-width="1.5"/>
-          <rect x="48" y="10" width="4" height="10" rx="1.5" ry="1.5" fill="#666"/>
-          <rect x="5" y="8" width="${fillWidth}" height="14" rx="1.5" ry="1.5" fill="${fillColor}"/>
-          <text x="25.5" y="18.5" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle">${clampedLevel}%</text>
+        <svg class="battery-svg" viewBox="0 0 48 40">
+          <rect x="3" y="8" width="38" height="24" rx="2" ry="2" fill="none" stroke="#666" stroke-width="1.5"/>
+          <rect x="41" y="14" width="4" height="12" rx="1.5" ry="1.5" fill="#666"/>
+          <rect x="5" y="10" width="${fillWidth}" height="20" rx="1.5" ry="1.5" fill="${fillColor}"/>
+          <text x="22" y="24" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle">${clampedLevel}%</text>
         </svg>
       </div>
     </div>
