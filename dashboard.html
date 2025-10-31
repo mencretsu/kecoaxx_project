@@ -61,17 +61,17 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   line-height: 1.2;
 }
 
-/* SVG Battery Styles */
+/* SVG Battery Styles - MODIFIED */
 .battery-container {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 50px;
+  min-width: 35px;
 }
 
 .battery-svg {
-  width: 50px;
-  height: 25px;
+  width: 32px;
+  height: 24px;
   flex-shrink: 0;
 }
 
@@ -109,8 +109,8 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   th, td { padding: 5px 3px; }
   th { font-size: 0.62rem; }
   td { font-size: 0.64rem; }
-  .battery-container { min-width: 45px; }
-  .battery-svg { width: 45px; height: 22px; }
+  .battery-container { min-width: 35px; } /* Reduced from 45px */
+  .battery-svg { width: 35px; height: 17px; } /* Reduced from 45x22px */
   .stats { gap: 6px; margin-bottom: 6px; }
   .stat-box { padding: 6px 8px; font-size: 0.65rem; min-width: 80px; }
   .stat-box .value { font-size: 0.8rem; }
@@ -130,7 +130,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   th, td { padding: 4px 2px; }
   th { font-size: 0.58rem; }
   td { font-size: 0.6rem; }
-  .battery-svg { width: 40px; height: 20px; }
+  .battery-svg { width: 30px; height: 15px; } /* Reduced from 40x20px */
   .stat-box { padding: 5px 6px; font-size: 0.6rem; min-width: 70px; }
   .stat-box .value { font-size: 0.75rem; }
   .filters input, .filters select { font-size: 0.65rem; padding: 4px 5px; }
@@ -251,16 +251,16 @@ const statTotalApi = document.getElementById("stat-totalapi");
 let devicesData = [];
 let sortSentAsc = false;
 
-// Render SVG Battery Icon
+// Render SVG Battery Icon - MODIFIED
 function renderBattery(batteryLevel) {
   if (batteryLevel === undefined || batteryLevel === null || batteryLevel < 0) {
     return `
       <div class="battery-tooltip" data-tooltip="Unknown">
         <div class="battery-container">
-          <svg class="battery-svg unknown" viewBox="0 0 100 50">
-            <rect x="5" y="10" width="75" height="30" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
-            <rect x="80" y="18" width="8" height="14" rx="2" ry="2" fill="#666"/>
-            <text x="42.5" y="32" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#888" text-anchor="middle">?</text>
+          <svg class="battery-svg unknown" viewBox="0 0 100 40">
+            <rect x="5" y="8" width="75" height="24" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
+            <rect x="80" y="14" width="8" height="12" rx="2" ry="2" fill="#666"/>
+            <text x="42.5" y="26" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#888" text-anchor="middle">?</text>
           </svg>
         </div>
       </div>
@@ -276,16 +276,16 @@ function renderBattery(batteryLevel) {
   else if (clampedLevel < 70) fillColor = "#ff9800";
 
   const textColor = "#fff";
-  const fontSize = clampedLevel === 100 ? "12" : "14";
+  const fontSize = clampedLevel === 100 ? "14" : "16"; // Increased font size
 
   return `
     <div class="battery-tooltip" data-tooltip="Baterai: ${clampedLevel}%">
       <div class="battery-container">
-        <svg class="battery-svg" viewBox="0 0 100 50">
-          <rect x="5" y="10" width="75" height="30" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
-          <rect x="80" y="18" width="8" height="14" rx="2" ry="2" fill="#666"/>
-          <rect x="8" y="13" width="${fillWidth}" height="24" rx="2" ry="2" fill="${fillColor}"/>
-          <text x="42.5" y="32" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle">${clampedLevel}%</text>
+        <svg class="battery-svg" viewBox="0 0 100 40">
+          <rect x="5" y="8" width="75" height="24" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
+          <rect x="80" y="14" width="8" height="12" rx="2" ry="2" fill="#666"/>
+          <rect x="8" y="11" width="${fillWidth}" height="18" rx="2" ry="2" fill="${fillColor}"/>
+          <text x="42.5" y="26" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle">${clampedLevel}%</text>
         </svg>
       </div>
     </div>
