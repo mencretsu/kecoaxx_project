@@ -61,6 +61,24 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   line-height: 1.2;
 }
 
+/* Range badge */
+.range-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-family: 'Courier New', monospace;
+  color: #90caf9;
+  white-space: nowrap;
+}
+
+.range-badge.no-range {
+  color: #777;
+  border-color: #333;
+}
+
 /* SVG Battery Styles */
 .battery-container {
   display: inline-flex;
@@ -121,6 +139,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   .chart-controls { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
   .chart-checkbox input[type="checkbox"] { width: 14px; height: 14px; }
   .chart-checkbox label { font-size: 0.7rem; }
+  .range-badge { font-size: 0.6rem; padding: 1px 4px; }
 }
 
 @media (max-width: 480px) {
@@ -137,6 +156,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
   button { padding: 4px 6px; font-size: 0.65rem; }
   #sentChart { height: 200px; }
   .chart-checkbox label { font-size: 0.65rem; }
+  .range-badge { font-size: 0.58rem; padding: 1px 3px; }
 }
 </style>
 </head>
@@ -180,6 +200,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
         <th>Nama</th>
         <th class="sortable">Sent ▲▼</th>
         <th>Bat</th>
+        <th>Range</th>
         <th>App</th>
         <th>Dev</th>
         <th>Bot</th>
@@ -187,7 +208,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
       </tr>
     </thead>
     <tbody id="devices-table">
-      <tr><td colspan="7" class="empty">Loading data...</td></tr>
+      <tr><td colspan="8" class="empty">Loading data...</td></tr>
     </tbody>
   </table>
 </div>
@@ -237,6 +258,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
+const keyRangesRef = ref(db, "keyRanges");
 const sentHistoryRef = ref(db, "sentHistory");
 const apiKeysRef = ref(db, "apiKeys/list");
 
@@ -249,6 +271,7 @@ const statSent = document.getElementById("stat-sent");
 const statTotalApi = document.getElementById("stat-totalapi");
 
 let devicesData = [];
+let keyRangesData = {};
 let sortSentAsc = false;
 
 // Render SVG Battery Icon
@@ -292,6 +315,17 @@ function renderBattery(batteryLevel) {
   `;
 }
 
+// Render Range Badge
+function renderRange(deviceId) {
+  const rangeData = keyRangesData[deviceId];
+  
+  if (!rangeData || rangeData.start === undefined || rangeData.end === undefined) {
+    return `<span class="range-badge no-range">-</span>`;
+  }
+  
+  return `<span class="range-badge">${rangeData.start}-${rangeData.end}</span>`;
+}
+
 function renderTable() {
   table.innerHTML = "";
   let filtered = devicesData.filter(d => {
@@ -331,13 +365,34 @@ function renderTable() {
         <td>${val(d.botName)}</td>
         <td>${val(sent)}</td>
         <td>${renderBattery(batteryLevel)}</td>
+        <td>${renderRange(d.id)}</td>
         <td>${val(d.pkgName)}</td>
         <td>${val(d.deviceName || d.id)}</td>
         <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
         <td>${val(d.status)}</td>
       </tr>`;
   });
-  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="7" class="empty">Tidak ada data</td></tr>`;
+  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="8" class="empty">Tidak ada data</td></tr>`;
+}
+
+async function fetchKeyRanges() {
+  try {
+    const snapshot = await get(keyRangesRef);
+    keyRangesData = {};
+    
+    snapshot.forEach(child => {
+      const data = child.val();
+      keyRangesData[child.key] = {
+        start: data.start,
+        end: data.end,
+        lastSeen: data.lastSeen
+      };
+    });
+    
+    console.log(`Loaded ${Object.keys(keyRangesData).length} key ranges`);
+  } catch (err) {
+    console.error("Error key ranges:", err);
+  }
 }
 
 async function fetchDevices() {
@@ -365,7 +420,7 @@ async function fetchDevices() {
     renderTable();
   } catch (err) {
     console.error("Error devices:", err);
-    table.innerHTML = `<tr><td colspan="7" class="empty">Error ambil data</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty">Error ambil data</td></tr>`;
   }
 }
 
@@ -573,6 +628,7 @@ document.getElementById('check-efficiency-growth').addEventListener('change', up
 document.getElementById('check-active-devices').addEventListener('change', updateChart);
 
 async function refreshAll() {
+  await fetchKeyRanges(); // Fetch ranges dulu
   await fetchDevices();
   await fetchApiKeysCount();
   await fetchSentHistory();
