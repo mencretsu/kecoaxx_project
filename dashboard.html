@@ -166,7 +166,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
 
 <div class="stats">
   <div class="stat-box">
-    <div class="label">Active</div>
+    <div class="label">Active Devices</div>
     <span class="value" id="stat-active">0</span>
   </div>
   <div class="stat-box clickable" id="total-sent-box" title="Klik untuk lihat history">
@@ -174,8 +174,12 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
     <span class="value" id="stat-sent">0</span>
   </div>
   <div class="stat-box">
-    <div class="label">Total API</div>
-    <span class="value" id="stat-totalapi">0</span>
+    <div class="label">Used APIs</div>
+    <span class="value" id="stat-usedapi">0</span>
+  </div>
+  <div class="stat-box">
+    <div class="label">Available Ranges</div>
+    <span class="value" id="stat-availrange">0</span>
   </div>
 </div>
 
@@ -260,7 +264,6 @@ const db = getDatabase(app);
 const devicesRef = ref(db, "devices");
 const keyRangesRef = ref(db, "keyRanges");
 const sentHistoryRef = ref(db, "sentHistory");
-const apiKeysRef = ref(db, "apiKeys/list");
 
 const searchInput = document.getElementById("searchInput");
 const timeRange = document.getElementById("timeRange");
@@ -268,7 +271,13 @@ const statusFilter = document.getElementById("statusFilter");
 const table = document.getElementById("devices-table");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
-const statTotalApi = document.getElementById("stat-totalapi");
+const statUsedApi = document.getElementById("stat-usedapi");
+const statAvailRange = document.getElementById("stat-availrange");
+
+// Hardcode total pool size (sesuaikan dengan jumlah keys di api_keys.txt)
+const TOTAL_POOL_KEYS = 2543;  // ← EDIT INI sesuai total keys lo!
+const KEYS_PER_DEVICE = 10;
+const TOTAL_RANGES = Math.floor(TOTAL_POOL_KEYS / KEYS_PER_DEVICE);
 
 let devicesData = [];
 let keyRangesData = {};
@@ -379,6 +388,8 @@ async function fetchKeyRanges() {
   try {
     const snapshot = await get(keyRangesRef);
     keyRangesData = {};
+    let totalKeysAllocated = 0;
+    let activeRanges = 0;
     
     snapshot.forEach(child => {
       const data = child.val();
@@ -387,11 +398,30 @@ async function fetchKeyRanges() {
         end: data.end,
         lastSeen: data.lastSeen
       };
+      
+      // Count allocated keys
+      totalKeysAllocated += (data.end - data.start + 1);
+      
+      // Count active ranges (< 7 days)
+      const daysSince = (Date.now() - data.lastSeen) / (1000 * 60 * 60 * 24);
+      if (daysSince < 7) {
+        activeRanges++;
+      }
     });
     
+    const availableRanges = TOTAL_RANGES - activeRanges;
+    
+    // Update stats
+    statUsedApi.textContent = totalKeysAllocated;
+    statAvailRange.textContent = availableRanges;
+    
     console.log(`Loaded ${Object.keys(keyRangesData).length} key ranges`);
+    console.log(`Active ranges: ${activeRanges}, Available: ${availableRanges}`);
+    console.log(`Total keys allocated: ${totalKeysAllocated}/${TOTAL_POOL_KEYS}`);
   } catch (err) {
     console.error("Error key ranges:", err);
+    statUsedApi.textContent = "0";
+    statAvailRange.textContent = "0";
   }
 }
 
@@ -424,17 +454,6 @@ async function fetchDevices() {
   }
 }
 
-async function fetchApiKeysCount() {
-  try {
-    const snapshot = await get(apiKeysRef);
-    let apiCount = 0;
-    snapshot.forEach(() => { apiCount++; });
-    statTotalApi.textContent = apiCount;
-  } catch (err) {
-    console.error("Error API keys:", err);
-    statTotalApi.textContent = "0";
-  }
-}
 
 let chartData = {
   labels: [],
@@ -628,9 +647,8 @@ document.getElementById('check-efficiency-growth').addEventListener('change', up
 document.getElementById('check-active-devices').addEventListener('change', updateChart);
 
 async function refreshAll() {
-  await fetchKeyRanges(); // Fetch ranges dulu
+  await fetchKeyRanges();
   await fetchDevices();
-  await fetchApiKeysCount();
   await fetchSentHistory();
 }
 
