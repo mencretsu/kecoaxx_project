@@ -371,8 +371,8 @@ function renderUsers() {
       <div class="user-section">
         <div class="user-header ${collapsedClass}" data-username="${username}">
           <div class="user-info">
-            <div class="user-name">👤 ${username}</div>
-            <div class="user-stats">
+<div class="user-name" title="${username}">👤 ${maskUsername(username)}</div>
+<div class="user-stats">
               <span><span class="label">Total:</span> <span class="value">${totalSent}</span></span>
               <span><span class="label">Devices:</span> <span class="value">${devices.length}</span></span>
               <span><span class="label">Active:</span> <span class="value">${activeDevices}</span></span>
@@ -568,6 +568,11 @@ async function fetchSentHistory() {
     console.error("❌ Error history:", err);
   }
 }
+function maskUsername(username) {
+  if (!username || username.length <= 3) return "***";
+  return username.slice(0, -3) + "***";
+}
+
 
 function updateChart() {
   const showTotalSent = document.getElementById('check-total-sent').checked;
