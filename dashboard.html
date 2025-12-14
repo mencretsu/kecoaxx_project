@@ -7,156 +7,142 @@
 <style>
 body { font-family:"Roboto", sans-serif; background:#121212; color:#e0e0e0; margin:0; padding:8px; }
 h1 { text-align:center; margin:8px 0 12px 0; font-size:1.2rem; color:#fff; }
-.table-container { overflow-x:auto; margin-bottom:10px; -webkit-overflow-scrolling:touch; }
-table { width:100%; border-collapse:collapse; background:#1e1e1e; border-radius:6px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
-thead { background:#272727; position:sticky; top:0; z-index:10; }
-th, td { padding:6px 4px; text-align:left; cursor:default; }
-th { color:#90caf9; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; font-size:0.65rem; }
-tr:nth-child(even) { background:#2a2a2a; }
-tr:hover { background:#333; }
-td { border-bottom:1px solid #2c2c2c; vertical-align:middle; font-size:0.68rem; }
-.empty { text-align:center; padding:12px; color:#888; }
-.filters { margin-bottom:8px; display:flex; gap:6px; flex-wrap:wrap; }
-.filters input, .filters select { font-size:0.75rem; padding:6px 8px; background:#1e1e1e; color:#e0e0e0; border:1px solid #333; border-radius:4px; flex:1; min-width:100px; }
-th.sortable { cursor:pointer; }
-.stats { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-.stat-box { background:#1e1e1e; padding:8px 12px; border-radius:6px; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; flex:1; min-width:90px; text-align:center; }
-.stat-box .label { font-size:0.65rem; opacity:0.8; margin-bottom:2px; }
-.stat-box .value { font-weight:bold; color:#90caf9; display:block; font-size:0.85rem; margin-top:2px; }
-.stat-box.clickable { cursor:pointer; transition:background 0.2s; }
-.stat-box.clickable:hover { background:#2a2a2a; }
-button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; border:none; border-radius:4px; cursor:pointer; font-size:0.75rem; width:100%; }
-#sentChart { width: 100%; height: 280px; }
 
-.chart-controls { 
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 8px; 
-  margin-bottom: 10px;
-}
-.chart-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+/* User Header Styles */
+.user-section { margin-bottom: 12px; }
+.user-header {
+  background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+  padding: 12px 16px;
+  border-radius: 8px;
   cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+  border-left: 4px solid #90caf9;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+.user-header:hover { background: linear-gradient(135deg, #2a2a2a 0%, #333 100%); transform: translateX(2px); }
+.user-header.collapsed { border-left-color: #555; }
+
+.user-info { flex: 1; }
+.user-name { font-size: 1rem; font-weight: 600; color: #90caf9; margin-bottom: 4px; }
+.user-stats { font-size: 0.7rem; color: #aaa; display: flex; gap: 16px; flex-wrap: wrap; }
+.user-stats span { display: inline-flex; align-items: center; gap: 4px; }
+.user-stats .label { opacity: 0.7; }
+.user-stats .value { color: #4caf50; font-weight: 600; }
+
+.expand-icon { 
+  font-size: 1.2rem; 
+  color: #90caf9; 
+  transition: transform 0.3s ease;
   user-select: none;
 }
-.chart-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-.chart-checkbox.c-blue input[type="checkbox"] { accent-color: #90caf9; }
-.chart-checkbox.c-green input[type="checkbox"] { accent-color: #4caf50; }
-.chart-checkbox.c-orange input[type="checkbox"] { accent-color: #ff9800; }
-.chart-checkbox.c-purple input[type="checkbox"] { accent-color: #ab47bc; }
-.chart-checkbox.c-cyan input[type="checkbox"] { accent-color: #26c6da; }
+.user-header.collapsed .expand-icon { transform: rotate(-90deg); }
 
-.chart-checkbox label {
-  cursor: pointer;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: #e0e0e0;
-  line-height: 1.2;
+/* Devices Table */
+.devices-container {
+  overflow: hidden;
+  max-height: 2000px;
+  transition: max-height 0.4s ease, opacity 0.3s ease;
+  opacity: 1;
+}
+.devices-container.collapsed {
+  max-height: 0;
+  opacity: 0;
 }
 
-/* Range badge */
-.range-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  background: #2a2a2a;
-  border: 1px solid #444;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-family: 'Courier New', monospace;
-  color: #90caf9;
-  white-space: nowrap;
-}
+.table-container { overflow-x:auto; margin:8px 0; -webkit-overflow-scrolling:touch; }
+table { width:100%; border-collapse:collapse; background:#1a1a1a; border-radius:6px; overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.6); font-size:0.7rem; }
+thead { background:#252525; position:sticky; top:0; z-index:10; }
+th, td { padding:6px 8px; text-align:left; }
+th { color:#888; font-weight:480; border-bottom:1px solid #333; white-space:nowrap; font-size:0.65rem; text-transform: uppercase; letter-spacing: 0.5px; }
+tr:nth-child(even) { background:#222; }
+tr:hover { background:#2a2a2a; }
+td { border-bottom:1px solid #2c2c2c; vertical-align:middle; font-size:0.68rem; }
+.empty { text-align:center; padding:12px; color:#888; font-style: italic; }
 
-.range-badge.no-range {
-  color: #777;
-  border-color: #333;
-}
+/* Filters & Controls */
+.filters { margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap; }
+.filters input, .filters select { font-size:0.75rem; padding:6px 8px; background:#1e1e1e; color:#e0e0e0; border:1px solid #333; border-radius:4px; flex:1; min-width:100px; }
+button { padding:6px 10px; background:#90caf9; color:#121212; border:none; border-radius:4px; cursor:pointer; font-size:0.75rem; font-weight: 600; transition: all 0.2s; }
+button:hover { background:#64b5f6; transform: translateY(-1px); box-shadow: 0 4px 8px rgba(144, 202, 249, 0.3); }
+button:active { transform: translateY(0); }
 
-/* SVG Battery Styles */
-.battery-container {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 50px;
-}
+/* Stats Cards */
+.stats { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+.stat-box { background:linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%); padding:10px 14px; border-radius:6px; box-shadow:0 2px 8px rgba(0,0,0,0.6); font-size:0.7rem; flex:1; min-width:90px; text-align:center; border-top: 2px solid #90caf9; }
+.stat-box .label { font-size:0.65rem; opacity:0.7; margin-bottom:4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-box .value { font-weight:bold; color:#90caf9; display:block; font-size:0.9rem; margin-top:2px; }
+.stat-box.clickable { cursor:pointer; transition:all 0.2s; }
+.stat-box.clickable:hover { background:linear-gradient(135deg, #2a2a2a 0%, #333 100%); transform: translateY(-2px); box-shadow:0 4px 12px rgba(144, 202, 249, 0.3); }
 
-.battery-svg {
-  width: 50px;
-  height: 25px;
-  flex-shrink: 0;
-}
-
-.battery-svg.unknown {
-  opacity: 0.4;
-}
-
-.battery-tooltip {
-  position: relative;
-  cursor: help;
-  display: inline-block;
-}
-
+/* Battery SVG */
+.battery-container { display:inline-flex; align-items:center; justify-content:center; min-width:50px; }
+.battery-svg { width:50px; height:25px; flex-shrink:0; }
+.battery-svg.unknown { opacity:0.4; }
+.battery-tooltip { position:relative; cursor:help; display:inline-block; }
 .battery-tooltip:hover::after {
-  content: attr(data-tooltip);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  white-space: nowrap;
-  z-index: 1000;
-  margin-bottom: 5px;
-  pointer-events: none;
+  content:attr(data-tooltip);
+  position:absolute; bottom:100%; left:50%; transform:translateX(-50%);
+  background:#333; color:white; padding:4px 8px; border-radius:4px;
+  font-size:0.7rem; white-space:nowrap; z-index:1000; margin-bottom:5px;
+  pointer-events:none;
 }
 
+/* Range Badge */
+.range-badge {
+  display:inline-block; padding:2px 6px; background:#2a2a2a;
+  border:1px solid #444; border-radius:4px; font-size:0.65rem;
+  font-family:'Courier New', monospace; color:#90caf9; white-space:nowrap;
+}
+.range-badge.no-range { color:#777; border-color:#333; }
+
+/* Chart Styles */
+#sentChart { width:100%; height:280px; margin-top:12px; }
+.chart-controls { 
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+  gap:8px; margin-bottom:10px;
+}
+.chart-checkbox { display:flex; align-items:center; gap:6px; cursor:pointer; user-select:none; }
+.chart-checkbox input[type="checkbox"] { width:16px; height:16px; cursor:pointer; flex-shrink:0; }
+.chart-checkbox.c-blue input[type="checkbox"] { accent-color:#90caf9; }
+.chart-checkbox.c-green input[type="checkbox"] { accent-color:#4caf50; }
+.chart-checkbox.c-orange input[type="checkbox"] { accent-color:#ff9800; }
+.chart-checkbox.c-purple input[type="checkbox"] { accent-color:#ab47bc; }
+.chart-checkbox.c-cyan input[type="checkbox"] { accent-color:#26c6da; }
+.chart-checkbox label { cursor:pointer; font-size:0.75rem; font-weight:500; color:#e0e0e0; line-height:1.2; }
+
+/* Loading State */
+.loading { text-align:center; padding:24px; color:#888; }
+.loading::after { content:'...'; animation:dots 1.5s steps(3, end) infinite; }
+@keyframes dots {
+  0%, 20% { content:''; }
+  40% { content:'.'; }
+  60% { content:'..'; }
+  80%, 100% { content:'...'; }
+}
+
+/* Responsive */
 @media (max-width: 768px) {
-  body { padding: 6px; }
-  h1 { font-size: 1.1rem; margin: 6px 0 10px 0; }
-  table { font-size: 0.65rem; }
-  th, td { padding: 5px 3px; }
-  th { font-size: 0.62rem; }
-  td { font-size: 0.64rem; }
-  .battery-container { min-width: 45px; }
-  .battery-svg { width: 45px; height: 22px; }
-  .stats { gap: 6px; margin-bottom: 6px; }
-  .stat-box { padding: 6px 8px; font-size: 0.65rem; min-width: 80px; }
-  .stat-box .value { font-size: 0.8rem; }
-  .filters { gap: 5px; margin-bottom: 6px; }
-  .filters input, .filters select { font-size: 0.7rem; padding: 5px 6px; min-width: 90px; }
-  button { padding: 5px 8px; font-size: 0.7rem; }
-  #sentChart { height: 240px; }
-  .chart-controls { grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px; }
-  .chart-checkbox input[type="checkbox"] { width: 14px; height: 14px; }
-  .chart-checkbox label { font-size: 0.7rem; }
-  .range-badge { font-size: 0.6rem; padding: 1px 4px; }
+  body { padding:6px; }
+  h1 { font-size:1.1rem; }
+  .user-header { padding:10px 12px; }
+  .user-name { font-size:0.9rem; }
+  .user-stats { font-size:0.65rem; gap:10px; }
+  table { font-size:0.65rem; }
+  th, td { padding:5px 6px; }
+  .stat-box { padding:8px 10px; min-width:80px; }
+  #sentChart { height:240px; }
 }
 
 @media (max-width: 480px) {
-  body { padding: 4px; }
-  h1 { font-size: 1rem; margin: 5px 0 8px 0; }
-  table { font-size: 0.6rem; }
-  th, td { padding: 4px 2px; }
-  th { font-size: 0.58rem; }
-  td { font-size: 0.6rem; }
-  .battery-svg { width: 40px; height: 20px; }
-  .stat-box { padding: 5px 6px; font-size: 0.6rem; min-width: 70px; }
-  .stat-box .value { font-size: 0.75rem; }
-  .filters input, .filters select { font-size: 0.65rem; padding: 4px 5px; }
-  button { padding: 4px 6px; font-size: 0.65rem; }
-  #sentChart { height: 200px; }
-  .chart-checkbox label { font-size: 0.65rem; }
-  .range-badge { font-size: 0.58rem; padding: 1px 3px; }
+  .user-header { flex-direction:column; align-items:flex-start; gap:8px; }
+  .expand-icon { position:absolute; right:12px; top:12px; }
+  .user-stats { gap:8px; }
+  table { font-size:0.6rem; }
+  th, td { padding:4px; }
+  #sentChart { height:200px; }
 }
 </style>
 </head>
@@ -165,6 +151,10 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
 <h1>Kecoaxx Dashboard</h1>
 
 <div class="stats">
+  <div class="stat-box">
+    <div class="label">Total Users</div>
+    <span class="value" id="stat-users">0</span>
+  </div>
   <div class="stat-box">
     <div class="label">Active Devices</div>
     <span class="value" id="stat-active">0</span>
@@ -184,7 +174,7 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
 </div>
 
 <div class="filters">
-  <input type="text" id="searchInput" placeholder="Cari nama, app, atau versi..." />
+  <input type="text" id="searchInput" placeholder="Cari username, bot, device..." />
   <select id="timeRange">
     <option value="today">Hari ini</option>
     <option value="all">Semua</option>
@@ -194,30 +184,16 @@ button { margin-top:0; padding:6px 10px; background:#90caf9; color:#121212; bord
     <option value="inactive">Show Inactive</option>
     <option value="all">Show All</option>
   </select>
+  <button id="expandAllBtn">Expand All</button>
+  <button id="collapseAllBtn">Collapse All</button>
   <button id="refreshBtn">Refresh Data</button>
 </div>
 
-<div class="table-container">
-  <table>
-    <thead>
-      <tr>
-        <th>Nama</th>
-        <th class="sortable">Sent ▲▼</th>
-        <th>Bat</th>
-        <th>Range</th>
-        <th>App</th>
-        <th>Dev</th>
-        <th>Bot</th>
-        <th>Status</th>
-      </tr>
-    </thead>
-    <tbody id="devices-table">
-      <tr><td colspan="8" class="empty">Loading data...</td></tr>
-    </tbody>
-  </table>
+<div id="users-container">
+  <div class="loading">Loading data</div>
 </div>
 
-<div id="history-section" style="text-align:center;font-weight:500;font-size:0.9rem;color:#90caf9;margin:16px 0 10px 0;">-- Stats --</div>
+<div id="history-section" style="text-align:center;font-weight:500;font-size:0.9rem;color:#90caf9;margin:24px 0 12px 0;">📊 Statistics</div>
 
 <div class="chart-controls">
   <div class="chart-checkbox c-blue">
@@ -261,29 +237,28 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-const devicesRef = ref(db, "devices");
+const usersRef = ref(db, "users");
 const keyRangesRef = ref(db, "keyRanges");
 const sentHistoryRef = ref(db, "sentHistory");
 
 const searchInput = document.getElementById("searchInput");
 const timeRange = document.getElementById("timeRange");
 const statusFilter = document.getElementById("statusFilter");
-const table = document.getElementById("devices-table");
+const usersContainer = document.getElementById("users-container");
+const statUsers = document.getElementById("stat-users");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
 const statUsedApi = document.getElementById("stat-usedapi");
 const statAvailRange = document.getElementById("stat-availrange");
 
-// Hardcode total pool size (sesuaikan dengan jumlah keys di api_keys.txt)
-const TOTAL_POOL_KEYS = 2543;  // ← EDIT INI sesuai total keys lo!
+const TOTAL_POOL_KEYS = 2543;
 const KEYS_PER_DEVICE = 10;
 const TOTAL_RANGES = Math.floor(TOTAL_POOL_KEYS / KEYS_PER_DEVICE);
 
-let devicesData = [];
+let usersData = {};
 let keyRangesData = {};
-let sortSentAsc = false;
+let expandedUsers = new Set();
 
-// Render SVG Battery Icon
 function renderBattery(batteryLevel) {
   if (batteryLevel === undefined || batteryLevel === null || batteryLevel < 0) {
     return `
@@ -307,7 +282,6 @@ function renderBattery(batteryLevel) {
   else if (clampedLevel < 30) fillColor = "#f44336";
   else if (clampedLevel < 70) fillColor = "#ff9800";
 
-  const textColor = "#fff";
   const fontSize = clampedLevel === 100 ? "16" : "18";
 
   return `
@@ -317,71 +291,160 @@ function renderBattery(batteryLevel) {
           <rect x="5" y="10" width="75" height="30" rx="3" ry="3" fill="none" stroke="#666" stroke-width="2"/>
           <rect x="80" y="18" width="8" height="14" rx="2" ry="2" fill="#666"/>
           <rect x="8" y="13" width="${fillWidth}" height="24" rx="2" ry="2" fill="${fillColor}"/>
-          <text x="42.5" y="32" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="${textColor}" text-anchor="middle">${clampedLevel}%</text>
+          <text x="42.5" y="32" font-family="Arial, sans-serif" font-size="${fontSize}" font-weight="bold" fill="#fff" text-anchor="middle">${clampedLevel}%</text>
         </svg>
       </div>
     </div>
   `;
 }
 
-// Render Range Badge
 function renderRange(deviceId) {
   const rangeData = keyRangesData[deviceId];
-  
   if (!rangeData || rangeData.start === undefined || rangeData.end === undefined) {
     return `<span class="range-badge no-range">-</span>`;
   }
-  
   return `<span class="range-badge">${rangeData.start}-${rangeData.end}</span>`;
 }
 
-function renderTable() {
-  table.innerHTML = "";
-  let filtered = devicesData.filter(d => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const name = (d.botName || "").toLowerCase();
-    const app = (d.pkgName || "").toLowerCase();
-    const version = (d.appVersion || "").toLowerCase();
+function renderUsers() {
+  const searchTerm = searchInput.value.toLowerCase();
+  const isToday = timeRange.value === "today";
+  
+  let filteredUsers = Object.entries(usersData).filter(([username, userData]) => {
+    if (!userData.devices) return false;
     
-    return name.includes(searchTerm) || app.includes(searchTerm) || version.includes(searchTerm);
+    const matchSearch = username.toLowerCase().includes(searchTerm) ||
+      Object.values(userData.devices).some(d => 
+        (d.botName || "").toLowerCase().includes(searchTerm) ||
+        (d.deviceName || "").toLowerCase().includes(searchTerm) ||
+        (d.pkgName || "").toLowerCase().includes(searchTerm)
+      );
+    
+    if (!matchSearch) return false;
+    
+    if (statusFilter.value === "all") return true;
+    
+    const hasActiveDevice = Object.values(userData.devices).some(d => {
+      const sent = isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
+      return sent > 0;
+    });
+    
+    return statusFilter.value === "active" ? hasActiveDevice : !hasActiveDevice;
   });
   
-  filtered = filtered.filter(d => {
-    const sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-    const isActive = sent > 0;
-    
-    if (statusFilter.value === "active") return isActive;
-    if (statusFilter.value === "inactive") return !isActive;
-    return true;
+  if (filteredUsers.length === 0) {
+    usersContainer.innerHTML = '<div class="empty">Tidak ada data yang sesuai filter</div>';
+    return;
+  }
+  
+  filteredUsers.sort((a, b) => {
+    const getTotalSent = (userData) => {
+      if (!userData.devices) return 0;
+      return Object.values(userData.devices).reduce((sum, d) => {
+        return sum + (isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0));
+      }, 0);
+    };
+    return getTotalSent(b[1]) - getTotalSent(a[1]);
   });
   
-  filtered.sort((a, b) => {
-    const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
-    const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
-    return valB - valA;
+  let html = '';
+  
+  filteredUsers.forEach(([username, userData]) => {
+    if (!userData.devices) return;
+    
+    const devices = Object.entries(userData.devices).map(([deviceId, d]) => ({
+      ...d,
+      id: deviceId
+    }));
+    
+    const totalSent = devices.reduce((sum, d) => 
+      sum + (isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0)), 0
+    );
+    const activeDevices = devices.filter(d => 
+      (isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0)) > 0
+    ).length;
+    
+    const isExpanded = expandedUsers.has(username);
+    const collapsedClass = isExpanded ? '' : 'collapsed';
+    
+    html += `
+      <div class="user-section">
+        <div class="user-header ${collapsedClass}" data-username="${username}">
+          <div class="user-info">
+            <div class="user-name">👤 ${username}</div>
+            <div class="user-stats">
+              <span><span class="label">Total:</span> <span class="value">${totalSent}</span></span>
+              <span><span class="label">Devices:</span> <span class="value">${devices.length}</span></span>
+              <span><span class="label">Active:</span> <span class="value">${activeDevices}</span></span>
+            </div>
+          </div>
+          <div class="expand-icon">▼</div>
+        </div>
+        
+        <div class="devices-container ${collapsedClass}">
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Bot Name</th>
+                  <th>Sent</th>
+                  <th>Bat</th>
+                  <th>Range</th>
+                  <th>App</th>
+                  <th>Device</th>
+                  <th>Version</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+    `;
+    
+    devices.forEach(d => {
+      const sent = isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
+      const val = v => v || "-";
+      const battery = d.battery !== undefined ? d.battery : d.batteryLevel !== undefined ? d.batteryLevel : null;
+      
+      html += `
+        <tr>
+          <td>${val(d.botName)}</td>
+          <td>${sent}</td>
+          <td>${renderBattery(battery)}</td>
+          <td>${renderRange(d.id)}</td>
+          <td>${val(d.pkgName)}</td>
+          <td>${val(d.deviceName)}</td>
+          <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
+          <td>${val(d.status)}</td>
+        </tr>
+      `;
+    });
+    
+    html += `
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    `;
   });
   
-  filtered.forEach(d => {
-    let sent = timeRange.value === "today" ? (d.sentToday ?? 0) : (d.totalSent ?? 0);
-    const val = v => v ? v : "-";
-    
-    const batteryLevel = d.battery !== undefined ? d.battery : 
-                        d.batteryLevel !== undefined ? d.batteryLevel : 
-                        null;
-    
-    table.innerHTML += `
-      <tr>
-        <td>${val(d.botName)}</td>
-        <td>${val(sent)}</td>
-        <td>${renderBattery(batteryLevel)}</td>
-        <td>${renderRange(d.id)}</td>
-        <td>${val(d.pkgName)}</td>
-        <td>${val(d.deviceName || d.id)}</td>
-        <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
-        <td>${val(d.status)}</td>
-      </tr>`;
+  usersContainer.innerHTML = html;
+  
+  document.querySelectorAll('.user-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const username = header.dataset.username;
+      const container = header.nextElementSibling;
+      
+      if (expandedUsers.has(username)) {
+        expandedUsers.delete(username);
+        header.classList.add('collapsed');
+        container.classList.add('collapsed');
+      } else {
+        expandedUsers.add(username);
+        header.classList.remove('collapsed');
+        container.classList.remove('collapsed');
+      }
+    });
   });
-  if (filtered.length === 0) table.innerHTML = `<tr><td colspan="8" class="empty">Tidak ada data</td></tr>`;
 }
 
 async function fetchKeyRanges() {
@@ -399,61 +462,60 @@ async function fetchKeyRanges() {
         lastSeen: data.lastSeen
       };
       
-      // Count allocated keys
       totalKeysAllocated += (data.end - data.start + 1);
-      
-      // Count active ranges (< 7 days)
       const daysSince = (Date.now() - data.lastSeen) / (1000 * 60 * 60 * 24);
-      if (daysSince < 7) {
-        activeRanges++;
-      }
+      if (daysSince < 7) activeRanges++;
     });
     
     const availableRanges = TOTAL_RANGES - activeRanges;
-    
-    // Update stats
     statUsedApi.textContent = totalKeysAllocated;
     statAvailRange.textContent = availableRanges;
     
-    console.log(`Loaded ${Object.keys(keyRangesData).length} key ranges`);
-    console.log(`Active ranges: ${activeRanges}, Available: ${availableRanges}`);
-    console.log(`Total keys allocated: ${totalKeysAllocated}/${TOTAL_POOL_KEYS}`);
+    console.log(`✅ Loaded ${Object.keys(keyRangesData).length} key ranges`);
   } catch (err) {
-    console.error("Error key ranges:", err);
+    console.error("❌ Error key ranges:", err);
     statUsedApi.textContent = "0";
     statAvailRange.textContent = "0";
   }
 }
 
-async function fetchDevices() {
+async function fetchUsers() {
   try {
-    const snapshot = await get(devicesRef);
-    devicesData = [];
-    let totalSent = 0, activeCount = 0;
-
-    snapshot.forEach(child => {
-      const d = child.val();
-      d.id = child.key;
-
-      let sentValue = 0;
-      if (timeRange.value === "today" && d.hasOwnProperty('sentToday')) sentValue = d.sentToday;
-      else if (timeRange.value === "all" && d.hasOwnProperty('totalSent')) sentValue = d.totalSent;
-
-      if (sentValue > 0) activeCount++;
-      totalSent += sentValue;
-      d._sentValue = sentValue;
-      devicesData.push(d);
+    const snapshot = await get(usersRef);
+    usersData = {};
+    let totalSent = 0;
+    let activeDevices = 0;
+    let totalUsers = 0;
+    
+    const isToday = timeRange.value === "today";
+    
+    snapshot.forEach(userChild => {
+      const username = userChild.key;
+      const userData = userChild.val();
+      
+      if (userData.devices) {
+        totalUsers++;
+        usersData[username] = userData;
+        
+        Object.values(userData.devices).forEach(device => {
+          const sent = isToday ? (device.sentToday ?? 0) : (device.totalSent ?? 0);
+          if (sent > 0) activeDevices++;
+          totalSent += sent;
+        });
+      }
     });
-
-    statActive.textContent = activeCount;
+    
+    statUsers.textContent = totalUsers;
+    statActive.textContent = activeDevices;
     statSent.textContent = totalSent;
-    renderTable();
+    
+    renderUsers();
+    console.log(`✅ Loaded ${totalUsers} users with devices`);
   } catch (err) {
-    console.error("Error devices:", err);
-    table.innerHTML = `<tr><td colspan="8" class="empty">Error ambil data</td></tr>`;
+    console.error("❌ Error fetching users:", err);
+    usersContainer.innerHTML = '<div class="empty">Error loading data</div>';
   }
 }
-
 
 let chartData = {
   labels: [],
@@ -503,7 +565,7 @@ async function fetchSentHistory() {
 
     updateChart();
   } catch (err) {
-    console.error("Error history:", err);
+    console.error("❌ Error history:", err);
   }
 }
 
@@ -640,39 +702,47 @@ function updateChart() {
   Plotly.newPlot('sentChart', traces, layout, config);
 }
 
+// Event listeners untuk chart checkboxes
 document.getElementById('check-total-sent').addEventListener('change', updateChart);
 document.getElementById('check-avg-device').addEventListener('change', updateChart);
 document.getElementById('check-daily-growth').addEventListener('change', updateChart);
 document.getElementById('check-efficiency-growth').addEventListener('change', updateChart);
 document.getElementById('check-active-devices').addEventListener('change', updateChart);
 
+// Main refresh function
 async function refreshAll() {
   await fetchKeyRanges();
-  await fetchDevices();
+  await fetchUsers();
   await fetchSentHistory();
 }
 
+// Initial load
 refreshAll();
 
+// Event listeners
 document.getElementById("refreshBtn").addEventListener("click", refreshAll);
-
 document.getElementById("total-sent-box").addEventListener("click", () => {
   document.getElementById("history-section").scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
-[searchInput, timeRange, statusFilter].forEach(el => el.addEventListener("change", renderTable));
-searchInput.addEventListener("input", renderTable);
+document.getElementById("expandAllBtn").addEventListener("click", () => {
+  Object.keys(usersData).forEach(username => expandedUsers.add(username));
+  renderUsers();
+});
 
-document.querySelector("th.sortable").addEventListener("click", () => {
-  devicesData.sort((a, b) => {
-    const valA = timeRange.value === "today" ? (a.sentToday ?? 0) : (a.totalSent ?? 0);
-    const valB = timeRange.value === "today" ? (b.sentToday ?? 0) : (b.totalSent ?? 0);
-    return sortSentAsc ? valB - valA : valA - valB;
-  });
-  sortSentAsc = !sortSentAsc;
-  renderTable();
+document.getElementById("collapseAllBtn").addEventListener("click", () => {
+  expandedUsers.clear();
+  renderUsers();
+});
+
+[searchInput, timeRange, statusFilter].forEach(el => el.addEventListener("change", () => {
+  fetchUsers();
+}));
+searchInput.addEventListener("input", () => {
+  renderUsers();
 });
 </script>
+
 <footer style="text-align:center; padding:12px; font-size:0.75rem; color:#777; margin-top:20px;">
   Powered by <span style="color:#90caf9;">mencretsu</span>
 </footer>
