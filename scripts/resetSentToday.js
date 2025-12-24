@@ -36,7 +36,6 @@ async function saveSnapshot() {
             botName: device.botName || "Unknown",
             deviceName: device.deviceName || "Unknown",
             totalSent: totalSent,
-            battery: device.battery !== undefined ? device.battery : device.batteryLevel,
             status: device.status || "unknown"
           };
           
