@@ -406,9 +406,11 @@ function renderUsers() {
       id: deviceId
     }));
     
-    const totalSent = devices.reduce((sum, d) => 
-      sum + (isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0)), 0
-    );
+    const totalSentAll = devices.reduce((s, d) => s + (d.totalSent ?? 0), 0);
+const totalSentToday = devices.reduce((s, d) => s + (d.sentToday ?? 0), 0);
+
+const totalSent = isToday ? totalSentToday : totalSentAll;
+
     const activeDevices = devices.filter(d => 
       (isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0)) > 0
     ).length;
@@ -422,10 +424,13 @@ function renderUsers() {
           <div class="user-info">
 <div class="user-name" title="${username}">👤 ${maskUsername(username)}</div>
 <div class="user-stats">
-              <span><span class="label">Total:</span> <span class="value">${totalSent}</span></span>
-              <span><span class="label">Devices:</span> <span class="value">${devices.length}</span></span>
-              <span><span class="label">Active:</span> <span class="value">${activeDevices}</span></span>
-            </div>
+  <span><span class="label">Total:</span> <span class="value">${totalSentAll}</span></span>
+  <span><span class="label">Devices:</span> <span class="value">${devices.length}</span></span>
+  <span><span class="label">Active:</span> <span class="value">${activeDevices}</span></span>
+    <span><span class="label">Hari ini:</span> <span class="value">${totalSentToday}</span></span>
+
+</div>
+
           </div>
           <div class="expand-icon">▼</div>
         </div>
