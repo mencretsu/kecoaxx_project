@@ -3,215 +3,397 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Kecoaxx Page</title>
+  <title>Kecoaxx</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
     body {
-      font-family: Arial, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a0a0a;
+      color: #ffffff;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      padding: 24px 16px;
+      background: #1a1a1a;
+      border-radius: 12px;
+      border: 1px solid #2a2a2a;
+      margin-bottom: 16px;
+    }
+    
+    .header h1 {
+      font-size: 1.8em;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: #00bfff;
+      text-transform: uppercase;
+    }
+    
+    .main-download {
+      background: linear-gradient(135deg, #1a1a1a, #252525);
+      border: 1px solid #00bfff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: all 0.2s;
+      cursor: pointer;
+      text-decoration: none;
+      display: block;
+    }
+    
+    .main-download:active {
+      transform: scale(0.98);
+      background: linear-gradient(135deg, #252525, #1a1a1a);
+    }
+    
+    .main-download-content {
       display: flex;
-      flex-direction: column;
       align-items: center;
-      padding: 20px;
-      background-color: #121212;
-      color: #ffffff;
+      gap: 12px;
     }
-    h1 {
-      margin-bottom: 30px;
-      color: #ffffff;
+    
+    .main-download svg {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
     }
+    
+    .main-download-text {
+      flex: 1;
+    }
+    
+    .main-download-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #00bfff;
+      margin-bottom: 2px;
+    }
+    
+    .main-download-size {
+      font-size: 12px;
+      color: #888;
+    }
+    
     .button {
-      display: inline-flex;
+      display: flex;
       align-items: center;
-      justify-content: flex-start;
-      gap: 10px;
-      width: 90%;
-      max-width: 300px;
-      padding: 12px 16px;
-      margin: 10px 0;
-      text-align: left;
-      background-color: #1f1f1f;
+      gap: 12px;
+      width: 100%;
+      padding: 14px 16px;
+      margin: 8px 0;
+      background: #1a1a1a;
       color: #ffffff;
       text-decoration: none;
-      border-radius: 8px;
-      font-size: 18px;
-      border: 1px solid #333;
-      transition: background-color 0.2s, color 0.2s;
+      border-radius: 10px;
+      font-size: 15px;
+      border: 1px solid #2a2a2a;
+      transition: all 0.2s;
       cursor: pointer;
     }
+    
+    .button:active {
+      transform: scale(0.98);
+      background: #252525;
+      border-color: #3a3a3a;
+    }
+    
     .button.no-icon {
       justify-content: center;
+      font-weight: 600;
+      background: #252525;
     }
+    
     .button svg {
       width: 20px;
       height: 20px;
       flex-shrink: 0;
-      vertical-align: middle;
     }
-    .button:hover {
-      background-color: #333333;
-      color: #00bfff;
+    
+    .button-text {
+      flex: 1;
     }
-    .sub-buttons {
-      margin-top: 20px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    h2 {
-      color: #ffffff;
-      margin-top: 20px;
-      margin-bottom: 8px;
-      font-size: 16px;
-      letter-spacing: 2px;
-    }
-    #releases-container {
-      background-color: #1a1a1a;
-      padding: 20px;
+    
+    .section-header {
+      text-align: center;
+      margin: 24px 0 12px;
+      padding: 8px;
+      background: rgba(0, 191, 255, 0.1);
       border-radius: 8px;
-      border: 1px solid #333;
     }
-    #releases {
+    
+    .section-header h2 {
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #00bfff;
+      font-weight: 600;
+    }
+    
+    #releases-container {
+      background: #1a1a1a;
+      border-radius: 12px;
+      border: 1px solid #2a2a2a;
       margin-top: 12px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s ease, padding 0.4s ease;
+    }
+    
+    #releases-container.show {
+      max-height: 3000px;
+      padding: 16px;
+    }
+    
+    #releases {
       list-style: none;
       padding: 0;
     }
+    
     #releases li {
-      margin: 15px 0;
-      padding: 10px;
-      background-color: #252525;
-      border-radius: 6px;
+      margin: 12px 0;
+      padding: 12px;
+      background: #252525;
+      border-radius: 8px;
       border-left: 3px solid #00bfff;
     }
+    
     #releases .release-title {
       color: #00bfff;
-      font-weight: bold;
-      font-size: 16px;
-      margin-bottom: 8px;
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 10px;
     }
+    
     #releases .apk-list {
       list-style: none;
       padding: 0;
       margin: 8px 0 0 0;
     }
+    
     #releases .apk-list li {
-      margin: 5px 0;
-      padding: 8px;
-      background-color: #1f1f1f;
+      margin: 6px 0;
+      padding: 10px;
+      background: #1f1f1f;
       border-left: none;
-      border-radius: 4px;
+      border-radius: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 10px;
+      border: 1px solid #2a2a2a;
     }
+    
+    #releases .apk-list li:active {
+      background: #2a2a2a;
+    }
+    
     #releases .apk-info {
       flex: 1;
-      color: #ffffff;
+      font-size: 13px;
     }
+    
+    .apk-name {
+      font-weight: 500;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    
+    .apk-size {
+      font-size: 11px;
+      color: #888;
+    }
+    
     #releases .download-btn {
-      padding: 6px 12px;
-      background-color: #00bfff;
-      color: #000000;
+      padding: 8px 14px;
+      background: #00bfff;
+      color: #000;
       text-decoration: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: bold;
-      transition: background-color 0.2s;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
       white-space: nowrap;
     }
-    #releases .download-btn:hover {
-      background-color: #0099cc;
+    
+    #releases .download-btn:active {
+      background: #0099cc;
+    }
+    
+    .loading {
+      text-align: center;
+      color: #888;
+      padding: 20px;
+    }
+    
+    .toggle-icon {
+      transition: transform 0.3s;
+      font-size: 12px;
+      color: #888;
+    }
+    
+    .toggle-icon.rotated {
+      transform: rotate(180deg);
+    }
+    
+    @media (max-width: 400px) {
+      .header h1 {
+        font-size: 1.5em;
+        letter-spacing: 4px;
+      }
+      
+      .button {
+        padding: 12px 14px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>-k e c o a x x-</h1>
+  <div class="container">
+    <div class="header">
+      <h1>KECOAXX</h1>
+    </div>
 
-  <a class="button no-icon" href="dashboard.html">📊 Dashboard</a>
+    <a class="button no-icon" href="dashboard.html">
+      🖥️ Dashboard
+    </a>
 
-  <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-release144.apk">
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    Download Kecoaxx v.144 - 600 gb
-  </a>
+    <a class="main-download" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/app-release144.apk">
+      <div class="main-download-content">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 3v10" stroke="#00bfff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M8 11l4 4 4-4" stroke="#00bfff" stroke-width="2" stroke-linecap="round"/>
+          <path d="M21 21H3" stroke="#00bfff" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div class="main-download-text">
+          <div class="main-download-title">Kecoaxx v.144</div>
+          <div class="main-download-size">600 GB</div>
+        </div>
+      </div>
+    </a>
 
-  <button class="button" onclick="toggleReleases()">
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-      <path d="M12 3v10" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M8 11l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M21 21H3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    Kecoaxx Lawasan
-  </button>
+    <button class="button" onclick="toggleReleases()">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <span class="button-text">Kecoaxx Lawasan</span>
+      <span class="toggle-icon" id="toggleIcon">▼</span>
+    </button>
 
-  <div id="releases-container" style="display: none; width: 100%; max-width: 600px; margin-top: 20px;">
-    <ul id="releases"><li>Loading releases...</li></ul>
-  </div>
+    <div id="releases-container">
+      <ul id="releases">
+        <li class="loading">Memuat...</li>
+      </ul>
+    </div>
 
-  <div class="sub-buttons">
-    <h2>----- alat tempur -----</h2>
+    <div class="section-header">
+      <h2>ALAT TEMPUR</h2>
+    </div>
 
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/fakegps.apk">fake gps</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/facebook.apk">facebook</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/tiktok.apk">tiktok</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/pinterest.apk">pinterest</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/screenon.apk">screen on</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/sugo.apk">sugo v33.0.1</a>
-    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/siya_118.xapk">siya v1.18</a>
-<a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/xapk_installer.apk">xapk installer</a>
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/fakegps.apk">
+      📍 <span class="button-text">Fake GPS</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/facebook.apk">
+      📘 <span class="button-text">Facebook</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/tiktok.apk">
+      🎵 <span class="button-text">TikTok</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/pinterest.apk">
+      📌 <span class="button-text">Pinterest</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/screenon.apk">
+      💡 <span class="button-text">Screen On</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/sugo.apk">
+      🎮 <span class="button-text">Sugo v33.0.1</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/siya_118.xapk">
+      ⚡ <span class="button-text">Siya v1.18</span>
+    </a>
+    
+    <a class="button" href="https://github.com/mencretsu/kecoaxx_project/releases/latest/download/xapk_installer.apk">
+      📥 <span class="button-text">XAPK Installer</span>
+    </a>
   </div>
 
   <script>
     let releasesLoaded = false;
+    let isOpen = false;
 
     function toggleReleases() {
       const container = document.getElementById("releases-container");
-      if (container.style.display === "none") {
-        container.style.display = "block";
+      const icon = document.getElementById("toggleIcon");
+      
+      isOpen = !isOpen;
+      
+      if (isOpen) {
+        container.classList.add("show");
+        icon.classList.add("rotated");
         if (!releasesLoaded) {
           loadReleases();
           releasesLoaded = true;
         }
       } else {
-        container.style.display = "none";
+        container.classList.remove("show");
+        icon.classList.remove("rotated");
       }
     }
 
     function loadReleases() {
       const list = document.getElementById("releases");
-      list.innerHTML = "<li>Loading releases...</li>";
+      list.innerHTML = '<li class="loading">Memuat...</li>';
 
       fetch("https://api.github.com/repos/mencretsu/kecoaxx_project/releases")
         .then(res => res.json())
         .then(data => {
           list.innerHTML = "";
           if (!data.length) {
-            list.innerHTML = "<li>Belum ada belum kah?</li>";
+            list.innerHTML = "<li class='loading'>Belum ada release</li>";
             return;
           }
 
           data.forEach(r => {
             const li = document.createElement("li");
-            const apks = r.assets.filter(a => a.name.endsWith('.apk'));
+            const apks = r.assets.filter(a => a.name.endsWith('.apk') || a.name.endsWith('.xapk'));
             
             let html = `<div class="release-title">${r.name || r.tag_name}</div>`;
             
             if (apks.length > 0) {
               html += '<ul class="apk-list">';
               apks.forEach(apk => {
+                const sizeMB = (apk.size / 1024 / 1024).toFixed(2);
                 html += `
                   <li>
-                    <div class="apk-info">📦 ${apk.name} | ${(apk.size / 1024 / 1024).toFixed(2)} MB</div>
+                    <div class="apk-info">
+                      <div class="apk-name">${apk.name}</div>
+                      <div class="apk-size">${sizeMB} MB</div>
+                    </div>
                     <a href="${apk.browser_download_url}" class="download-btn" download>Download</a>
                   </li>
                 `;
               });
               html += '</ul>';
             } else {
-              html += '<div style="color: #888; font-size: 14px;">Tidak ada APK</div>';
+              html += '<div style="color: #888; font-size: 13px; margin-top: 6px;">Tidak ada APK</div>';
             }
             
             li.innerHTML = html;
@@ -219,7 +401,7 @@
           });
         })
         .catch(() => {
-          list.innerHTML = "<li>Gagal memuat...</li>";
+          list.innerHTML = "<li class='loading'>Gagal memuat</li>";
         });
     }
   </script>
