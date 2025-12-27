@@ -144,7 +144,7 @@ button:active { transform: translateY(0); }
   #sentChart { height:200px; }
 }
 
-  .warning-box {
+.warning-box {
   background: linear-gradient(135deg, #3d1f1f 0%, #5a2828 100%);
   border-left: 4px solid #f44336;
   border-radius: 8px;
@@ -210,14 +210,6 @@ button:active { transform: translateY(0); }
   <div class="stat-box clickable" id="total-sent-box" title="Klik untuk lihat history">
     <div class="label">Total Sent</div>
     <span class="value" id="stat-sent">0</span>
-  </div>
-  <div class="stat-box">
-    <div class="label">Used APIs</div>
-    <span class="value" id="stat-usedapi">0</span>
-  </div>
-  <div class="stat-box">
-    <div class="label">Available Ranges</div>
-    <span class="value" id="stat-availrange">0</span>
   </div>
 </div>
 
@@ -286,7 +278,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const usersRef = ref(db, "users");
-const keyRangesRef = ref(db, "keyRanges");
 const sentHistoryRef = ref(db, "sentHistory");
 
 const searchInput = document.getElementById("searchInput");
@@ -296,12 +287,6 @@ const usersContainer = document.getElementById("users-container");
 const statUsers = document.getElementById("stat-users");
 const statActive = document.getElementById("stat-active");
 const statSent = document.getElementById("stat-sent");
-const statUsedApi = document.getElementById("stat-usedapi");
-const statAvailRange = document.getElementById("stat-availrange");
-
-const TOTAL_POOL_KEYS = 2543;
-const KEYS_PER_DEVICE = 10;
-const TOTAL_RANGES = Math.floor(TOTAL_POOL_KEYS / KEYS_PER_DEVICE);
 
 let usersData = {};
 let keyRangesData = {};
@@ -406,10 +391,9 @@ function renderUsers() {
     }));
     
     const totalSentAll = devices.reduce((s, d) => s + (d.totalSent ?? 0), 0);
-const totalSentToday = devices.reduce((s, d) => s + (d.sentToday ?? 0), 0);
-
-const totalSent = isToday ? totalSentToday : totalSentAll;
-
+    const totalSentToday = devices.reduce((s, d) => s + (d.sentToday ?? 0), 0);
+    const totalSent = isToday ? totalSentToday : totalSentAll;
+    
     const activeDevices = devices.filter(d => 
       (isToday ? (d.sentToday ?? 0) : (d.totalSent ?? 0)) > 0
     ).length;
@@ -421,15 +405,13 @@ const totalSent = isToday ? totalSentToday : totalSentAll;
       <div class="user-section">
         <div class="user-header ${collapsedClass}" data-username="${username}">
           <div class="user-info">
-<div class="user-name" title="${username}">👤 ${maskUsername(username)}</div>
-<div class="user-stats">
-  <span><span class="label">Total:</span> <span class="value">${totalSentAll}</span></span>
-  <span><span class="label">Devices:</span> <span class="value">${devices.length}</span></span>
-  <span><span class="label">Active:</span> <span class="value">${activeDevices}</span></span>
-    <span><span class="label">Sent today:</span> <span class="value">${totalSentToday}</span></span>
-
-</div>
-
+            <div class="user-name" title="${username}">👤 ${maskUsername(username)}</div>
+            <div class="user-stats">
+              <span><span class="label">Total:</span> <span class="value">${totalSentAll}</span></span>
+              <span><span class="label">Devices:</span> <span class="value">${devices.length}</span></span>
+              <span><span class="label">Active:</span> <span class="value">${activeDevices}</span></span>
+              <span><span class="label">Sent today:</span> <span class="value">${totalSentToday}</span></span>
+            </div>
           </div>
           <div class="expand-icon">▼</div>
         </div>
@@ -442,7 +424,6 @@ const totalSent = isToday ? totalSentToday : totalSentAll;
                   <th>Bot Name</th>
                   <th>Sent</th>
                   <th>Bat</th>
-                  <th>Range</th>
                   <th>App</th>
                   <th>Device</th>
                   <th>Version</th>
@@ -462,7 +443,6 @@ const totalSent = isToday ? totalSentToday : totalSentAll;
           <td>${val(d.botName)}</td>
           <td>${sent}</td>
           <td>${renderBattery(battery)}</td>
-          <td>${renderRange(d.id)}</td>
           <td>${val(d.pkgName)}</td>
           <td>${val(d.deviceName)}</td>
           <td>${val(d.appVersion ? "v." + d.appVersion : "")}</td>
@@ -504,8 +484,6 @@ async function fetchKeyRanges() {
   try {
     const snapshot = await get(keyRangesRef);
     keyRangesData = {};
-    let totalKeysAllocated = 0;
-    let activeRanges = 0;
     
     snapshot.forEach(child => {
       const data = child.val();
@@ -514,21 +492,11 @@ async function fetchKeyRanges() {
         end: data.end,
         lastSeen: data.lastSeen
       };
-      
-      totalKeysAllocated += (data.end - data.start + 1);
-      const daysSince = (Date.now() - data.lastSeen) / (1000 * 60 * 60 * 24);
-      if (daysSince < 7) activeRanges++;
     });
-    
-    const availableRanges = TOTAL_RANGES - activeRanges;
-    statUsedApi.textContent = totalKeysAllocated;
-    statAvailRange.textContent = availableRanges;
     
     console.log(`✅ Loaded ${Object.keys(keyRangesData).length} key ranges`);
   } catch (err) {
     console.error("❌ Error key ranges:", err);
-    statUsedApi.textContent = "0";
-    statAvailRange.textContent = "0";
   }
 }
 
@@ -621,11 +589,11 @@ async function fetchSentHistory() {
     console.error("❌ Error history:", err);
   }
 }
+
 function maskUsername(username) {
   if (!username || username.length <= 3) return "***";
   return username.slice(0, -3) + "***";
 }
-
 
 function updateChart() {
   const showTotalSent = document.getElementById('check-total-sent').checked;
@@ -760,66 +728,21 @@ function updateChart() {
   Plotly.newPlot('sentChart', traces, layout, config);
 }
 
-// Event listeners untuk chart checkboxes
 document.getElementById('check-total-sent').addEventListener('change', updateChart);
 document.getElementById('check-avg-device').addEventListener('change', updateChart);
 document.getElementById('check-daily-growth').addEventListener('change', updateChart);
 document.getElementById('check-efficiency-growth').addEventListener('change', updateChart);
 document.getElementById('check-active-devices').addEventListener('change', updateChart);
 
-  
-const inactiveDevicesRef = ref(db, "inactiveDevices");
 
-// Function baru untuk load inactive devices
-async function loadInactiveDevices() {
-  const today = new Date().toISOString().split('T')[0];
-  
-  try {
-    const snapshot = await get(ref(db, `inactiveDevices/${today}`));
-    
-    // Remove existing warning
-    const existingWarning = document.getElementById('inactive-warning');
-    if (existingWarning) existingWarning.remove();
-    
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const devices = data.devices;
-      
-      const warningHTML = `
-        <div id="inactive-warning" class="warning-box">
-          <h3>⚠️ ${data.count} Device Tidak Aktif Hari Ini</h3>
-          <ul>
-            ${devices.map(d => `
-              <li>
-                <div class="device-info">
-                  <span class="device-name">${d.botName}</span>
-                  <span class="device-meta">👤 ${maskUsername(d.username)} • 📱 ${d.deviceName}</span>
-                </div>
-                <span class="last-sent">Total: ${d.totalSent}</span>
-              </li>
-            `).join('')}
-          </ul>
-        </div>
-      `;
-      
-      usersContainer.insertAdjacentHTML('beforebegin', warningHTML);
-    }
-  } catch (err) {
-    console.error("❌ Error loading inactive devices:", err);
-  }
-}
-// Main refresh function
 async function refreshAll() {
   await fetchKeyRanges();
   await fetchUsers();
   await fetchSentHistory();
-    await loadInactiveDevices(); 
 }
 
-// Initial load
 refreshAll();
 
-// Event listeners
 document.getElementById("refreshBtn").addEventListener("click", refreshAll);
 document.getElementById("total-sent-box").addEventListener("click", () => {
   document.getElementById("history-section").scrollIntoView({ behavior: "smooth", block: "start" });
