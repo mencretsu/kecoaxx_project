@@ -8,7 +8,7 @@ import com.example.ngontol.utils.BotConstants
 
 class ServiceStateManager {
     private val TAG = "StateManager"
-
+    var lastRelogCheck = System.currentTimeMillis()  // ✅ Timer terpisah untuk relog
     var lastRun = 0L
     var lastCacheClear = System.currentTimeMillis()
     var lastRestartTime = 0L
@@ -20,15 +20,11 @@ class ServiceStateManager {
     var isHandlingChat = false
     var needRestart = false
     var isLaunching = false  // ✅ Prevent double launch
-
+    @Volatile
+    var lastEventProcessTime: Long = 0L
     fun shouldSkipRestart(now: Long): Boolean {
         val timeSinceLastRestart = now - lastRestartTime
         val should = lastRestartTime > 0 && timeSinceLastRestart < BotConstants.MIN_RESTART_INTERVAL
-
-        if (should) {
-            val remaining = (BotConstants.MIN_RESTART_INTERVAL - timeSinceLastRestart) / 1000
-            Log.d(TAG, "⏸️ Restart cooldown: ${remaining}s remaining")
-        }
 
         return should
     }
@@ -37,27 +33,21 @@ class ServiceStateManager {
         val timeSinceRestartComplete = now - lastRestartComplete
         val should = lastRestartComplete > 0 && timeSinceRestartComplete < BotConstants.POST_RESTART_COOLDOWN
 
-        if (should) {
-            val remaining = (BotConstants.POST_RESTART_COOLDOWN - timeSinceRestartComplete) / 1000
-            Log.d(TAG, "⏸️ Post-restart cooldown: ${remaining}s remaining")
-        }
-
         return should
     }
 
     fun shouldClearCache(): Boolean {
         val now = System.currentTimeMillis()
         val timeSince = now - lastCacheClear
+        return timeSince >= 30000L  // Auto clear setiap 30 detik
+    }
+    fun shouldRelog(): Boolean {
+        val now = System.currentTimeMillis()
+        val timeSince = now - lastRelogCheck
         val should = timeSince >= BotConstants.CACHE_CLEAR_INTERVAL
-
-        if (should) {
-            val minutes = timeSince / 1000 / 60
-            Log.d(TAG, "🔄 Should clear cache: ${minutes} minutes since last clear")
-        }
 
         return should
     }
-
     fun shouldProcess(now: Long): Boolean {
         return now - lastRun >= interval
     }
@@ -65,11 +55,16 @@ class ServiceStateManager {
     fun updateLastRun(now: Long) {
         lastRun = now
     }
-
+    fun clearCache() {
+        processed.clear()
+        lastCacheClear = System.currentTimeMillis()
+//        Log.d(TAG, "🧹 Cache cleared")
+    }
     @SuppressLint("UseKtx")
     fun reset(service: AccessibilityService) {
         Log.d(TAG, "🔄 State reset called")
         lastCacheClear = System.currentTimeMillis()
+        lastRelogCheck = System.currentTimeMillis()  // ✅ Reset relog timer juga
         lastRestartComplete = 0L
         processed.clear()
         isHandlingChat = false

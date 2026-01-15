@@ -3,7 +3,6 @@ package com.example.ngontol
 import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
-import com.example.ngontol.firebase.FirebaseManager
 import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -60,23 +59,22 @@ object GeminiApi {
         inputText: String,
         persona: Persona,
         model: BotPersona = BotPersona.GENZ_CENTIL,
-        randomize: Boolean = true, // Ganti default jadi true
         userCity: String? = null
     ): String? {
         val prefs = context.getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
         val cooldownPrefs = context.getSharedPreferences("key_cooldown", Context.MODE_PRIVATE)
 
-        val cooldownMS = 8000L // Naikin jadi 8 detik biar lebih aman
+        val cooldownMS = 8000L
         val currentTime = System.currentTimeMillis()
 
         // Ambil API keys
-        var apiKeys = prefs.getStringSet("apiKey2", emptySet())?.toList()
+        var apiKeys = prefs.getStringSet("apiKeyx", emptySet())?.toList()
 
         if (apiKeys.isNullOrEmpty()) {
-            Log.d(TAG, "📥 Keys kosong, fetch dari Firebase...")
+            Log.d(TAG, "🔥 Keys kosong, load dari assets...")
             FirebaseManager.ensureDeviceInitialized(context)
             FirebaseManager.fetchMaxKeys(context)
-            apiKeys = prefs.getStringSet("apiKey2", emptySet())?.toList()
+            apiKeys = prefs.getStringSet("apiKeyx", emptySet())?.toList()
         }
 
         if (apiKeys.isNullOrEmpty()) {
@@ -87,84 +85,100 @@ object GeminiApi {
         // Filter keys yang sudah melewati cooldown
         val availableKeys = apiKeys.filter { key ->
             val lastUsed = cooldownPrefs.getLong(key, 0L)
-            val isAvailable = (currentTime - lastUsed) >= cooldownMS
-
-            if (!isAvailable) {
-                val remaining = ((cooldownMS - (currentTime - lastUsed)) / 1000.0)
-                Log.d(TAG, "⏳ Key ${key.takeLast(8)} cooldown: ${remaining}s")
-            }
-
-            isAvailable
+            (currentTime - lastUsed) >= cooldownMS
         }
 
         if (availableKeys.isEmpty()) {
-            Log.w(TAG, "⏱️ Semua keys dalam cooldown")
+            Log.w(TAG, "⏱️ Semua keys dalam cooldown (${apiKeys.size} total keys)")
             return null
         }
 
-        // RANDOM shuffled keys
+        // Shuffle untuk distribusi merata
         val keysToUse = availableKeys.shuffled()
-//        Log.d(TAG, "🔑 Available: ${keysToUse.size}/${apiKeys.size} keys (random order)")
+
+        Log.d(TAG, "🎯 Trying ${keysToUse.size}/${apiKeys.size} available keys")
+
+        // Model priority
+        val modelPriority = listOf("gemini-2.0-flash")
+
+        var successCount = 0
+        var totalFails = 0
 
         // Loop semua available keys
         for ((index, apiKey) in keysToUse.withIndex()) {
-            // Delay random 300-800ms sebelum request (kecuali key pertama)
+            // Delay random 1000-2000ms sebelum request (kecuali key pertama)
             if (index > 0) {
-                val randomDelay = (2000L..3000L).random()
-//                Log.d(TAG, "⏳ Delay ${randomDelay}ms sebelum key ${index + 1}")
-                delay(randomDelay)
+                delay((1000L..2000L).random())
             }
 
-            val reply = try {
-//                Log.d(TAG, "🚀 Trying key ${index + 1}/${keysToUse.size}")
+            var reply: String? = null
+            var keySuccess = false
 
-                val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
-                val systemPrompt = generateSystemPrompt(persona, model, userCity)
+            // Loop semua model sampai ada yang berhasil
+            for (modelName in modelPriority) {
+                if (keySuccess) break
 
-                val payload = RequestPayload(
-                    contents = listOf(
-                        Content(parts = listOf(TextPart(systemPrompt))),
-                        Content(parts = listOf(TextPart(inputText)))
+                try {
+                    val url = "https://generativelanguage.googleapis.com/v1beta/models/$modelName:generateContent?key=$apiKey"
+                    val systemPrompt = generateSystemPrompt(persona, model, userCity)
+
+                    val payload = RequestPayload(
+                        contents = listOf(
+                            Content(parts = listOf(TextPart(systemPrompt))),
+                            Content(parts = listOf(TextPart(inputText)))
+                        )
                     )
-                )
 
-                val json = requestAdapter.toJson(payload)
-                val body = json.toRequestBody("application/json".toMediaType())
-                val request = Request.Builder().url(url).post(body).build()
+                    val json = requestAdapter.toJson(payload)
+                    val body = json.toRequestBody("application/json".toMediaType())
+                    val request = Request.Builder().url(url).post(body).build()
 
-                client.newCall(request).execute().use { response ->
-                    // Update timestamp SETELAH request
-                    cooldownPrefs.edit().putLong(apiKey, System.currentTimeMillis()).apply()
+                    client.newCall(request).execute().use { response ->
+                        // Update timestamp SETELAH request
+                        cooldownPrefs.edit().putLong(apiKey, System.currentTimeMillis()).apply()
 
-                    when (response.code) {
-                        200 -> {
-                            val bodyStr = response.body?.string().orEmpty()
-                            val text = responseAdapter.fromJson(bodyStr)
-                                ?.candidates?.firstOrNull()
-                                ?.content?.parts?.firstOrNull()?.text?.trim()
+                        when (response.code) {
+                            200 -> {
+                                val bodyStr = response.body?.string().orEmpty()
+                                val text = responseAdapter.fromJson(bodyStr)
+                                    ?.candidates?.firstOrNull()
+                                    ?.content?.parts?.firstOrNull()?.text?.trim()
 
-                            if (text != null) {
-//                                Log.d(TAG, "✅ Sukses dengan key ${index + 1}")
-//                                Log.d(TAG, "✅ [${index + 1}] Sukses respons: $text")
-
+                                if (text != null) {
+                                    Log.d(TAG, "✅ Success: $modelName (key ${index + 1}/${keysToUse.size})")
+                                    reply = text
+                                    keySuccess = true
+                                    successCount++
+                                }
                             }
-                            text
-                        }
-                        429 -> {
-//                            Log.w(TAG, "⏱️ Rate limit key ${index + 1}")
-                            null
-                        }
-                        else -> {
-                            Log.w(TAG, "❌ Error ${response.code} key ${index + 1}")
-                            null
+                            429 -> {
+                                Log.w(TAG, "⚠️ 429 Rate Limited: $modelName (key ${index + 1})")
+                                totalFails++
+                            }
+                            403 -> {
+                                Log.w(TAG, "⚠️ 403 Forbidden: $modelName (key ${index + 1})")
+                                totalFails++
+                            }
+                            400 -> {
+                                val bodyStr = response.body?.string().orEmpty()
+                                Log.w(TAG, "🚫 400 Bad Request: $modelName (key ${index + 1}) - ${bodyStr.take(100)}")
+                                totalFails++
+                            }
+                            else -> {
+                                Log.w(TAG, "❌ Error ${response.code}: $modelName (key ${index + 1})")
+                                totalFails++
+                            }
                         }
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Exception $modelName (key ${index + 1}): ${e.message}")
+                    totalFails++
+                    cooldownPrefs.edit().putLong(apiKey, System.currentTimeMillis()).apply()
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Exception key ${index + 1}: ${e.message}")
-                // Update timestamp meskipun exception
-                cooldownPrefs.edit().putLong(apiKey, System.currentTimeMillis()).apply()
-                null
+
+                if (!keySuccess) {
+                    delay(300)
+                }
             }
 
             if (!reply.isNullOrEmpty()) {
@@ -173,7 +187,7 @@ object GeminiApi {
             }
         }
 
-        Log.w(TAG, "⚠️ Semua keys gagal atau cooldown")
+        Log.w(TAG, "⚠️ All keys failed or in cooldown (Success: $successCount, Fails: $totalFails)")
         return null
     }
 }

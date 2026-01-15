@@ -8,12 +8,12 @@ import android.os.Build
 import android.util.Log
 import android.view.accessibility.AccessibilityNodeInfo
 import androidx.annotation.RequiresApi
-import com.example.ngontol.BotKeyboard
 import com.example.ngontol.PersonaManager
 import com.example.ngontol.Persona
 import com.example.ngontol.WindowFilterHelper
 import com.example.ngontol.config.AppConfigs
 import com.example.ngontol.helpers.NodeFinder
+import com.example.ngontol.helpers.MessageSender
 import com.example.ngontol.managers.ChatHistoryManager
 import com.example.ngontol.models.ChatMessage
 import com.example.ngontol.processors.OpenerSelector
@@ -21,9 +21,13 @@ import com.example.ngontol.processors.ReplyGenerator
 import com.example.ngontol.utils.sanitize
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 object S2Service : BaseAppService(AppConfigs.MOMO) {
+
+    private val processingMutex = Mutex()
+    private var isProcessingChat = false
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun start(service: AccessibilityService, scope: CoroutineScope, isRunning: () -> Boolean) {
@@ -31,161 +35,278 @@ object S2Service : BaseAppService(AppConfigs.MOMO) {
         onAccessibilityEvent(service, scope, isRunning)
     }
 
+    // ✅ Return dummy message karena nama diambil setelah chat dibuka
     override fun extractChatMessage(
         row: AccessibilityNodeInfo,
         service: AccessibilityService
     ): ChatMessage? {
-        val rect = Rect().apply { row.getBoundsInScreen(this) }
-        if (rect.width() <= 0 || rect.height() <= 0) return null
-
-        val root = WindowFilterHelper.getTargetRootNode(service, config.packageName) ?: return null
-        val titleNode = root.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/title")
-            ?.firstOrNull { node ->
-                if (WindowFilterHelper.isOwnOverlay(node, service.packageName)) return@firstOrNull false
-                val rectTitle = Rect().apply { node.getBoundsInScreen(this) }
-                rect.contains(rectTitle)
-            }
-
-        val name = titleNode?.text?.toString().orEmpty()
-        if (name.isBlank()) return null
-
-        return ChatMessage(name, "", 1)
+        return ChatMessage("", "", 1)
     }
 
-    // ✅ OVERRIDE handleCancelButtons untuk pakai gesture click
-    override fun handleCancelButtons(service: AccessibilityService, root: AccessibilityNodeInfo) {
+    // ✅ Fungsi baru khusus untuk S2Service (bukan override)
+    private suspend fun handleCancelButtonsWithGesture(service: AccessibilityService, root: AccessibilityNodeInfo) {
         val cancelBtn = NodeFinder.findCancelButton(root, config, service.packageName)
 
         if (cancelBtn != null) {
             Log.d(TAG, "🚫 Cancel button found, clicking with gesture...")
-
-            val clicked = clickWithGesture(service, cancelBtn)
-            if (clicked) {
-                Log.d(TAG, "✅ Cancel button clicked successfully")
+            if (clickWithGesture(service, cancelBtn)) {
+                Log.d(TAG, "✅ Cancel button clicked")
+                delay(800L)
             } else {
-                Log.w(TAG, "⚠️ Failed to click cancel button with gesture")
+                Log.w(TAG, "⚠️ Failed to click cancel button")
             }
         }
     }
 
+    // ✅ Main handleChat dengan Mutex lock
     override suspend fun handleChat(
         service: AccessibilityService,
         message: ChatMessage,
         scope: CoroutineScope,
         shouldSkip: Boolean
     ) {
-        val root = WindowFilterHelper.getTargetRootNode(service, config.packageName) ?: return
-
-        // ✅ Handle cancel sebelum klik chat
-        handleCancelButtons(service, root)
-        delay(300L)
-
-        val rows = root.findAccessibilityNodeInfosByViewId(config.listViewId)
-            .filter {
-                !WindowFilterHelper.isOwnOverlay(it, service.packageName) &&
-                        it.isClickable
+        // ✅ Thread-safe check
+        processingMutex.withLock {
+            if (isProcessingChat) {
+                Log.d(TAG, "⏸️ Already processing, skip...")
+                return
             }
+            isProcessingChat = true
+        }
 
-        // ✅ Cari row yang match dengan message.name
-        val row = rows.find { rowNode ->
-            val titleNode = root.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/title")
-                ?.firstOrNull { node ->
-                    if (WindowFilterHelper.isOwnOverlay(node, service.packageName)) return@firstOrNull false
-                    val rect = Rect().apply { node.getBoundsInScreen(this) }
-                    val rowRect = Rect().apply { rowNode.getBoundsInScreen(this) }
-                    rowRect.contains(rect)
-                }
+        try {
+            processChat(service, shouldSkip)
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error in handleChat: ${e.message}", e)
+        } finally {
+            isProcessingChat = false
+        }
+    }
 
-            val name = titleNode?.text?.toString().orEmpty()
-            name == message.name
-        } ?: run {
-            Log.w(TAG, "⚠️ Row not found for ${message.name}")
+    // ✅ Main chat processing logic
+    private suspend fun processChat(
+        service: AccessibilityService,
+        shouldSkip: Boolean
+    ) {
+        val root = WindowFilterHelper.getTargetRootNode(service, config.packageName) ?: run {
+            Log.w(TAG, "⚠️ Root not found")
             return
         }
 
-        // ✅ Klik chat (mark as read)
-        if (!clickWithGesture(service, row)) return
-        delay(1500L)
+        // ✅ Handle cancel button dulu
+        handleCancelButtonsWithGesture(service, root)
 
-        // ✅ Handle cancel setelah masuk chat
+        // ✅ Ambil chat list
+        val rows = root.findAccessibilityNodeInfosByViewId(config.listViewId)
+            .filter { !WindowFilterHelper.isOwnOverlay(it) && it.isClickable }
+
+        val topRow = rows.firstOrNull { rowNode ->
+            val rect = Rect().apply { rowNode.getBoundsInScreen(this) }
+            rect.width() > 0 && rect.height() > 0
+        } ?: run {
+//            Log.w(TAG, "⚠️ No valid rows")
+            return
+        }
+
+        // ✅ Click chat teratas dengan gesture
+        if (!clickWithGesture(service, topRow)) {
+            Log.e(TAG, "❌ Failed to click top row")
+            return
+        }
+
+        Log.d(TAG, "✅ Clicked top chat")
+        delay(500L)
+
+        // ✅ Check cancel button lagi setelah buka chat
         val rootAfterClick = WindowFilterHelper.getTargetRootNode(service, config.packageName)
         if (rootAfterClick != null) {
-            handleCancelButtons(service, rootAfterClick)
-            delay(300L)
+            handleCancelButtonsWithGesture(service, rootAfterClick)
         }
 
-        // ✅ Jika shouldSkip = true, langsung back (read only)
+        // ✅ Extract nama dari chat yang udah kebuka
+        val actualName = extractOpenedChatName(service)
+        if (actualName.isNullOrBlank()) {
+//            Log.e(TAG, "❌ Cannot extract name from opened chat")
+            backOnce(service)
+            return
+        }
+
+//        Log.d(TAG, "📛 Opened chat: $actualName")
+
+        // ✅ Skip kalo cuma mau baca doang (shouldSkip = true)
         if (shouldSkip) {
-            Log.d(TAG, "⭐️ Skipped message from ${message.name} - read only, no reply")
-            delay(500L)
-            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
+            Log.d(TAG, "⭐️ Skipped: $actualName (read only)")
+            delay(400L)
+            backOnce(service)
             return
         }
 
-        val input = NodeFinder.waitForInput(service, config) ?: run {
-            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-            return
-        }
-        delay(1500L)
+        // ✅ Process reply
+        try {
+            // Wait input field
+            val input = NodeFinder.waitForInput(service, config) ?: run {
+                Log.e(TAG, "❌ Input field not found")
+                backOnce(service)
+                return
+            }
 
-        val lastMessage = waitForLastMessage(service) ?: OpenerSelector.getOpener()
-        val finalMessage = message.copy(message = lastMessage)
+//            delay(500L)
 
-        val persona = PersonaManager.getPersona(service) ?: run {
-            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-            return
-        }
+            // ✅ Ambil last message atau pake opener
+            val lastMessage = waitForLastMessage(service) ?: OpenerSelector.getOpener()
+            val actualMessage = ChatMessage(actualName, lastMessage, 1)
 
-        val userCity = waitForCity(service, persona)
+//            Log.d(TAG, "💬 Last message: $lastMessage")
 
-        scope.launch {
+            // ✅ Get persona
+            val persona = PersonaManager.getPersona(service) ?: run {
+                Log.e(TAG, "❌ No persona found")
+                backOnce(service)
+                return
+            }
+
+            // ✅ Get user city
+            val userCity = waitForCity(service, persona)
+//            Log.d(TAG, "📍 User city: $userCity")
+
+            // ✅ Generate reply
+            val reply = ReplyGenerator.generate(service, actualMessage, persona, userCity)
+//            Log.d(TAG, "📝 Reply: $reply")
+
+            // ✅ Send reply dengan MessageSender.sendWithPasteGesture
+            MessageSender.sendWithGestureFast(service, input, reply, config)
+
+            // ✅ Save chat history
+            val safeName = actualName.sanitize()
+            val userId = safeName.ifBlank { "user_${actualName.hashCode()}" }
+
+            ChatHistoryManager.addMessage(
+                service, userId, actualName, persona.botName,
+                actualMessage.message, reply
+            )
+
+            delay(300L)
+            // ✅ Check cancel button & reward view sebelum back
+            val rootAfterSend = WindowFilterHelper.getTargetRootNode(service, config.packageName)
+            if (rootAfterSend != null) {
+                handleCancelButtonsWithGesture(service, rootAfterSend)
+                delay(300L)
+            }
+
+            // ✅ Back pertama
+            backOnce(service)
+            delay(700L)
+
+            // ✅ Check apakah masih ada ivLoverTree setelah back pertama
+            val rootAfterBack = WindowFilterHelper.getTargetRootNode(service, config.packageName)
+            if (rootAfterBack != null) {
+                handleCancelButtonsWithGesture(service, rootAfterBack)
+                delay(800L)  // ← Naikin delay tunggu UI stabil
+
+                // ✅ REFRESH ROOT setelah cancel (karena UI berubah!)
+                val rootAfterCancel = WindowFilterHelper.getTargetRootNode(service, config.packageName)
+                if (rootAfterCancel != null) {
+                    Log.d(TAG, "🔍 Before handleCancelButtons")
+                    handleCancelButtonsWithGesture(service, rootAfterCancel)
+                    Log.d(TAG, "✅ After handleCancelButtons")
+                    delay(500L)
+                    Log.d(TAG, "✅ After delay 500ms")
+
+                    val stillHasTree = rootAfterCancel.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/ivLoverTree")
+                        ?.firstOrNull()
+
+                    if (stillHasTree != null) {
+                        Log.d(TAG, "🌳 Still has ivLoverTree after first back, backing again...")
+                        delay(300L)
+                        backOnce(service)
+                    } else {
+                        Log.d(TAG, "✅ No ivLoverTree, already in list")
+                    }
+                } else {
+                    Log.e(TAG, "❌ Root NULL after cancel")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error during reply: ${e.message}", e)
             try {
-                val reply = ReplyGenerator.generate(service, finalMessage, persona, userCity)
-                sendReplyWithGesture(service, input, reply)
-
-                val safeName = message.name.sanitize()
-                val userId = safeName.ifBlank { "user_${message.name.hashCode()}" }
-                ChatHistoryManager.addMessage(
-                    service, userId, message.name, persona.botName,
-                    finalMessage.message, reply
-                )
-
-                delay(900)
-                service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-                delay(500)
-                service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed: ${e.message}")
-                try {
-                    service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_BACK)
-                } catch (_: Exception) {}
+                backOnce(service)
+            } catch (ex: Exception) {
+                Log.e(TAG, "❌ Error during back: ${ex.message}")
             }
         }
     }
 
+    // ✅ Extract nama dari chat yang SUDAH TERBUKA
+    private suspend fun extractOpenedChatName(service: AccessibilityService): String? {
+        delay(300)
+        val root = WindowFilterHelper.getTargetRootNode(service, config.packageName) ?: return null
+
+        // ✅ Primary: Coba dari title bar
+        val titleNode = root.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/tvTitle")
+            ?.firstOrNull {
+                !WindowFilterHelper.isOwnOverlay(it) &&
+                        it.text != null && it.text.isNotBlank()
+            }
+
+        val name = titleNode?.text?.toString()?.trim()
+        if (!name.isNullOrBlank()) {
+//            Log.d(TAG, "✅ Name from tvTitle: $name")
+            return name
+        }
+
+        // ✅ Fallback: Coba dari view ID alternatif
+        val fallbackIds = listOf(
+            "com.hwsj.club:id/title",
+            "com.hwsj.club:id/chat_title",
+            "com.hwsj.club:id/userName",
+            "com.hwsj.club:id/name",
+            "com.hwsj.club:id/chatName"
+        )
+
+        for (viewId in fallbackIds) {
+            val node = root.findAccessibilityNodeInfosByViewId(viewId)
+                ?.firstOrNull {
+                    !WindowFilterHelper.isOwnOverlay(it) &&
+                            it.text != null && it.text.isNotBlank()
+                }
+
+            val fallbackName = node?.text?.toString()?.trim()
+            if (!fallbackName.isNullOrBlank()) {
+//                Log.d(TAG, "✅ Name from $viewId: $fallbackName")
+                return fallbackName
+            }
+        }
+
+        Log.w(TAG, "⚠️ Name not found in any view")
+        return null
+    }
+
+    // ✅ Click dengan gesture (non-blocking)
     private fun clickWithGesture(
         service: AccessibilityService,
         node: AccessibilityNodeInfo
     ): Boolean {
-        if (WindowFilterHelper.isOwnOverlay(node, service.packageName)) {
-            Log.w(TAG, "⚠️ Node is overlay, skip click")
+        if (WindowFilterHelper.isOwnOverlay(node)) {
+//            Log.w(TAG, "⚠️ Node is overlay, skip click")
             return false
         }
 
         val rect = Rect().apply { node.getBoundsInScreen(this) }
 
-        // Validate rect
         if (rect.width() <= 0 || rect.height() <= 0) {
-            Log.w(TAG, "⚠️ Invalid rect: $rect")
+//            Log.w(TAG, "⚠️ Invalid rect: $rect")
             return false
         }
 
         val centerX = rect.centerX().toFloat()
         val centerY = rect.centerY().toFloat()
 
-        Log.d(TAG, "📍 Clicking at: ($centerX, $centerY)")
+//        Log.d(TAG, "👆 Clicking at: ($centerX, $centerY)")
 
-        val path = Path().apply { moveTo(centerX, centerY) }
+        val path = Path().apply {
+            moveTo(centerX, centerY)
+        }
+
         val gesture = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
             .build()
@@ -193,104 +314,77 @@ object S2Service : BaseAppService(AppConfigs.MOMO) {
         return try {
             service.dispatchGesture(gesture, null, null)
             true
-        } catch (t: Throwable) {
-            Log.e(TAG, "❌ Click gesture failed: ${t.message}")
+        } catch (_: Throwable) {
+//            Log.e(TAG, "❌ Click gesture failed: ${t.message}")
             false
         }
     }
 
-    private suspend fun sendReplyWithGesture(
+    // ✅ Wait for last message (suspend, ringan)
+    private suspend fun waitForLastMessage(
         service: AccessibilityService,
-        input: AccessibilityNodeInfo,
-        text: String
-    ) {
-        val delayTime = if (text.length <= 30) {
-            (590..799).random().toLong()
-        } else {
-            (770..1090).random().toLong()
-        }
+        timeoutMs: Long = 3000L
+    ): String? {
+        val startTime = System.currentTimeMillis()
+        var attempts = 0
 
-        val rect = Rect().apply { input.getBoundsInScreen(this) }
-        val path = Path().apply { moveTo(rect.centerX().toFloat(), rect.centerY().toFloat()) }
-        val gesture = GestureDescription.Builder()
-            .addStroke(GestureDescription.StrokeDescription(path, 0, 100))
-            .build()
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            attempts++
 
-        try {
-            service.dispatchGesture(gesture, null, null)
-        } catch (t: Throwable) {
-            Log.w(TAG, "Click input failed: ${t.message}")
-        }
+            val root = WindowFilterHelper.getTargetRootNode(service, config.packageName)
+                ?: continue
 
-        delay(300)
-        BotKeyboard.instance?.typeText(text)
-        delay(delayTime)
+            val messages = root.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/content")
+                ?.filter { !WindowFilterHelper.isOwnOverlay(it) }
 
-        val root = WindowFilterHelper.getTargetRootNode(service, config.packageName)
-        val sendBtn = root?.findAccessibilityNodeInfosByViewId(config.sendViewId)
-            ?.firstOrNull { !WindowFilterHelper.isOwnOverlay(it, service.packageName) }
+            if (!messages.isNullOrEmpty()) {
+                val lastMessage = messages.lastOrNull() ?: continue
+                val text = lastMessage.text?.toString()?.trim().orEmpty()
 
-        if (sendBtn != null) {
-            val sendRect = Rect().apply { sendBtn.getBoundsInScreen(this) }
-            val sendPath = Path().apply {
-                moveTo(sendRect.centerX().toFloat(), sendRect.centerY().toFloat())
+                if (text.isNotBlank()) {
+//                    Log.d(TAG, "✅ Last message found after ${attempts} attempts")
+                    return text
+                }
             }
-            val sendGesture = GestureDescription.Builder()
-                .addStroke(GestureDescription.StrokeDescription(sendPath, 0, 100))
-                .build()
 
-            try {
-                service.dispatchGesture(sendGesture, null, null)
-            } catch (t: Throwable) {
-                Log.w(TAG, "Click send failed: ${t.message}")
-            }
+            delay(150L)
         }
+
+//        Log.w(TAG, "⚠️ No last message found after ${timeoutMs}ms")
+        return null
     }
 
-    private fun waitForCity(
+    // ✅ Wait for city (suspend, ringan)
+    private suspend fun waitForCity(
         service: AccessibilityService,
         persona: Persona,
-        timeoutMs: Long = 2000
+        timeoutMs: Long = 2000L
     ): String {
-        val start = System.currentTimeMillis()
+        val startTime = System.currentTimeMillis()
+        var attempts = 0
 
-        while (System.currentTimeMillis() - start < timeoutMs) {
-            val root = WindowFilterHelper.getTargetRootNode(service, config.packageName) ?: continue
+        while (System.currentTimeMillis() - startTime < timeoutMs) {
+            attempts++
+
+            val root = WindowFilterHelper.getTargetRootNode(service, config.packageName)
+                ?: continue
 
             val cityNode = root.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/cityView")
                 ?.firstOrNull {
                     it.text != null && it.text.isNotBlank() &&
-                            !WindowFilterHelper.isOwnOverlay(it, service.packageName)
+                            !WindowFilterHelper.isOwnOverlay(it)
                 }
 
             val cityText = cityNode?.text?.toString()?.trim()
-            if (!cityText.isNullOrEmpty()) return cityText
-
-            Thread.sleep(120)
-        }
-
-        return persona.address
-    }
-
-    private fun waitForLastMessage(
-        service: AccessibilityService,
-        timeoutMs: Long = 5000
-    ): String? {
-        val start = System.currentTimeMillis()
-
-        while (System.currentTimeMillis() - start < timeoutMs) {
-            val root = WindowFilterHelper.getTargetRootNode(service, config.packageName) ?: continue
-            val messages = root.findAccessibilityNodeInfosByViewId("com.hwsj.club:id/content")
-                ?.filter { !WindowFilterHelper.isOwnOverlay(it, service.packageName) }
-
-            if (!messages.isNullOrEmpty()) {
-                val text = messages.lastOrNull()?.text?.toString()?.trim().orEmpty()
-                if (text.isNotBlank()) return text
+            if (!cityText.isNullOrEmpty()) {
+//                Log.d(TAG, "✅ City found after ${attempts} attempts: $cityText")
+                return cityText
             }
 
-            Thread.sleep(150)
+            delay(120L)
         }
-        return null
-    }
 
+//        Log.d(TAG, "⚠️ City not found, using persona address: ${persona.address}")
+        return persona.address
+    }
 }

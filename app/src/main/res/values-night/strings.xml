@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="opsi_pengembang">Opsi Pengembang</string>
+    <string name="on">- On</string>
+    <string name="hioff">- Off</string>
+    <string name="auto_hi">Auto hi</string>
+    <string name="reset_api">Reset API</string>
+    <string name="hybrid_relog" />
+
 </resources>

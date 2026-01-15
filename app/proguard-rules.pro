@@ -1,21 +1,60 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ========== KONFIGURASI AMAN ==========
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Hapus log hanya untuk release build tertentu
+# -assumenosideeffects class android.util.Log {
+#     public static *** d(...);
+#     public static *** v(...);
+# }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Optimasi moderate
+-optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*
+-optimizationpasses 3
+-allowaccessmodification
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Keep penting
+-keepattributes *Annotation*,Signature,InnerClasses,EnclosingMethod,Exceptions
+
+# Keep Kotlin
+-keep class kotlin.** { *; }
+-keep class kotlinx.** { *; }
+
+# Keep coroutines
+-keepclassmembers class kotlinx.coroutines.** { *; }
+
+# Keep aplikasi utama
+-keep class com.example.ngontol.** { *; }
+-keepclassmembers class com.example.ngontol.** { *; }
+
+# Keep data classes (Persona, dll)
+-keep class com.example.ngontol.** {
+    public <fields>;
+    public <methods>;
+}
+
+# Keep Moshi
+-keep class com.squareup.moshi.** { *; }
+-keepclassmembers class ** {
+    @com.squareup.moshi.* <methods>;
+}
+
+# Keep Gson
+-keep class com.google.gson.** { *; }
+
+# Keep Firebase
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.** { *; }
+
+# Ktor
+-keep class io.ktor.** { *; }
+
+# OkHttp
+-keep class okhttp3.** { *; }
+
+# Android
+-keep class androidx.** { *; }
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Service
+
+# Jangan tampilkan warning
+-dontwarn **

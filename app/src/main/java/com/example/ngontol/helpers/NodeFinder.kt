@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.ngontol.helpers
 
 import android.accessibilityservice.AccessibilityService
@@ -40,7 +42,7 @@ object NodeFinder {
     fun waitForInput(
         service: AccessibilityService,
         config: AppConfig,
-        timeoutMs: Long = 3000
+        timeoutMs: Long = 5000
     ): AccessibilityNodeInfo? {
         val start = System.currentTimeMillis()
 
@@ -48,7 +50,7 @@ object NodeFinder {
             val root = WindowFilterHelper.getTargetRootNode(service, config.packageName)
             val input = root?.findAccessibilityNodeInfosByViewId(config.inputViewId)
                 ?.firstOrNull {
-                    !WindowFilterHelper.isOwnOverlay(it, service.packageName) &&
+                    !WindowFilterHelper.isOwnOverlay(it) &&
                             it.isVisibleToUser
                 }
 
@@ -67,7 +69,7 @@ object NodeFinder {
         return config.cancelButtonIds.firstNotNullOfOrNull { buttonId ->
             root.findAccessibilityNodeInfosByViewId(buttonId)
                 ?.firstOrNull {
-                    !WindowFilterHelper.isOwnOverlay(it, servicePackage) &&
+                    !WindowFilterHelper.isOwnOverlay(it) &&
                             it.isVisibleToUser
                 }
         }

@@ -36,12 +36,13 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var b: ActivityMainBinding
     private lateinit var fakeGpsManager: FakeGpsManager
-    private var currentRelogOption = 3 // default no relog
+    private var currentRelogOption = 3
+    private var currentAutoMode = 1
+
     private var selectedModel: BotPersona = BotPersona.GENZ_CENTIL
     private var ignoreFakeSpinnerCallback = false
-    private val blacklistItems = mutableListOf<String>() // FIX: Simpan blacklist di memory
+    private val blacklistItems = mutableListOf<String>()
 
-    // ✅ BroadcastReceiver untuk sync status
     private val botStatusReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (intent?.action == "com.example.ngontol.BOT_STATUS_CHANGED") {
@@ -62,14 +63,12 @@ class MainActivity : AppCompatActivity() {
         b = ActivityMainBinding.inflate(layoutInflater)
         setContentView(b.root)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
-        // Init managers
+
         val fusedClient = LocationServices.getFusedLocationProviderClient(this)
         fakeGpsManager = FakeGpsManager(this, fusedClient)
 
-        // Check license
-        checkLicense()
+        checkAuthenticationStatus()
 
-        // Setup UI
         setupPersonaSpinner()
         setupFakeGpsSpinner()
         setupButtons()
@@ -83,11 +82,76 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        // ✅ Unregister receiver
         try {
             unregisterReceiver(botStatusReceiver)
         } catch (e: Exception) {
             Log.e("MainActivity", "Error unregister receiver: ${e.message}")
+        }
+    }
+
+    // ==================== AUTHENTICATION ====================
+
+    private fun checkAuthenticationStatus() {
+        lifecycleScope.launch {
+            if (!com.example.ngontol.auth.UserAuthManager.isLoggedIn(this@MainActivity)) {
+                when (val result = UserMigrationHelper.autoMigrate(this@MainActivity)) {
+                    is MigrationResult.Success -> {
+                        toast("✅ Auto-login berhasil")
+                        checkLicense()
+                    }
+                    is MigrationResult.Failed -> {
+                        showLoginDialog()
+                    }
+                    MigrationResult.NoOldData -> {
+                        showLoginDialog()
+                    }
+                }
+            } else {
+                checkLicense()
+            }
+        }
+    }
+
+    private fun showLoginDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_user_login, null)
+        val etUsername = dialogView.findViewById<EditText>(R.id.etUsername)
+        val etAccessCode = dialogView.findViewById<EditText>(R.id.etAccessCode)
+
+        AlertDialog.Builder(this)
+            .setTitle("🔐 Login")
+            .setMessage("Masukkan username & kode akses")
+            .setView(dialogView)
+            .setPositiveButton("Login") { _, _ ->
+                val username = etUsername.text.toString().trim()
+                val accessCode = etAccessCode.text.toString().trim()
+                performLogin(username, accessCode)
+            }
+            .setNegativeButton("Keluar") { _, _ ->
+                finish()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun performLogin(username: String, accessCode: String) {
+        lifecycleScope.launch {
+            val result = com.example.ngontol.auth.UserAuthManager.authenticate(
+                this@MainActivity,
+                username,
+                accessCode
+            )
+
+            when (result) {
+                is com.example.ngontol.auth.AuthResult.Success -> {
+                    toast("✅ Login berhasil")
+                    checkLicense()
+                    updateUI()
+                }
+                is com.example.ngontol.auth.AuthResult.Error -> {
+                    toast(result.message)
+                    showLoginDialog()
+                }
+            }
         }
     }
 
@@ -96,11 +160,9 @@ class MainActivity : AppCompatActivity() {
     private fun checkLicense() {
         lifecycleScope.launch {
             val isValid = LicenseManager.validateLicense(this@MainActivity)
+            updateLicenseStatus()
             if (!isValid) {
-//                showLicenseDialog()
-                updateLicenseStatus()
-            } else {
-                updateLicenseStatus()
+                // Handle license not valid
             }
         }
     }
@@ -146,12 +208,37 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun updateLicenseStatus() {
-        val info = LicenseManager.getLicenseInfo(this)
-        if (info != null) {
-            val maskedKey = "${info.key.take(4)}****${info.key.takeLast(4)}"
-            b.tvUserStatus.text = "👤 ${info.userName} | 🔑 $maskedKey"
-        } else {
-            b.tvUserStatus.text = "Login"
+        val isLoggedIn = com.example.ngontol.auth.UserAuthManager.isLoggedIn(this)
+
+        if (!isLoggedIn) {
+            b.tvUserStatus.text = "❌ Belum Login - Tap untuk Login"
+            b.tvUserStatus.setTextColor("#FF5252".toColorInt())
+            return
+        }
+
+        val username = com.example.ngontol.auth.UserAuthManager.getUsername(this)
+        val accessCode = com.example.ngontol.auth.UserAuthManager.getAccessCode(this)
+
+        if (username != null && accessCode != null) {
+            val maskedCode = if (accessCode.length >= 8) {
+                "${accessCode.take(4)}****${accessCode.takeLast(4)}"
+            } else {
+                "${accessCode.take(2)}****"
+            }
+
+            val licenseInfo = LicenseManager.getLicenseInfo(this)
+            if (licenseInfo != null) {
+                val maskedKey = if (licenseInfo.key.length >= 8) {
+                    "${licenseInfo.key.take(4)}****${licenseInfo.key.takeLast(4)}"
+                } else {
+                    "${licenseInfo.key.take(2)}****"
+                }
+                b.tvUserStatus.text = "👤 $username | 🔑 $maskedCode | 📜 ${licenseInfo.userName}"
+            } else {
+                b.tvUserStatus.text = "👤 $username | 🔑 $maskedCode"
+            }
+
+            b.tvUserStatus.setTextColor("#00E676".toColorInt())
         }
     }
 
@@ -163,7 +250,6 @@ class MainActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(R.layout.spinner_item)
         b.spinnerPersona.adapter = adapter
 
-        // Load saved selection
         val prefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
         val savedModel = prefs.getString("selected_model", BotPersona.GENZ_CENTIL.name)
         val index = BotPersona.entries.indexOfFirst { it.name == savedModel }
@@ -189,7 +275,6 @@ class MainActivity : AppCompatActivity() {
         adapter.setDropDownViewResource(R.layout.spinner_item)
         b.spinnerFakeGps.adapter = adapter
 
-        // Load saved
         val savedPos = fakeGpsManager.getSavedSelection()
         ignoreFakeSpinnerCallback = true
         b.spinnerFakeGps.setSelection(savedPos)
@@ -235,7 +320,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         b.tvUserStatus.setOnClickListener {
-            showLicenseInfo()
+            val isLoggedIn = com.example.ngontol.auth.UserAuthManager.isLoggedIn(this)
+
+            if (!isLoggedIn) {
+                showLoginDialog()
+            } else {
+                showUserInfo()
+            }
         }
 
         b.btndevOpt.setOnClickListener {
@@ -247,11 +338,17 @@ class MainActivity : AppCompatActivity() {
                 R.id.rbRelogAll -> 1
                 R.id.rbRelogUnread -> 2
                 R.id.rbNoRelog -> 3
+                R.id.rbHybrid -> 4
                 else -> 3
             }
         }
+
         b.btnAddBlacklist.setOnClickListener {
             addBlacklistItem()
+        }
+
+        b.switchAuto.setOnCheckedChangeListener { _, isChecked ->
+            currentAutoMode = if (isChecked) 2 else 1
         }
 
         b.btnkeyboardSett.setOnClickListener {
@@ -261,13 +358,60 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // ✅ Register broadcast receiver
         val filter = android.content.IntentFilter("com.example.ngontol.BOT_STATUS_CHANGED")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(botStatusReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+            registerReceiver(botStatusReceiver, filter, RECEIVER_NOT_EXPORTED)
         } else {
             registerReceiver(botStatusReceiver, filter)
         }
+    }
+
+    // ==================== USER INFO ====================
+
+    private fun showUserInfo() {
+        val username = com.example.ngontol.auth.UserAuthManager.getUsername(this)
+        val accessCode = com.example.ngontol.auth.UserAuthManager.getAccessCode(this)
+        val licenseInfo = LicenseManager.getLicenseInfo(this)
+
+        val message = buildString {
+            appendLine("👤 Username: $username")
+            appendLine("🔑 Access Code: $accessCode")
+
+            if (licenseInfo != null) {
+                appendLine("📜 License: ${licenseInfo.userName}")
+                appendLine("🔑 Key: ${licenseInfo.key}")
+                appendLine("📅 Expired: ${licenseInfo.expiryDate ?: "Lifetime"}")
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Info User")
+            .setMessage(message)
+            .setPositiveButton("OK", null)
+            .setNeutralButton("Logout") { _, _ ->
+                logoutUser()
+            }
+            .show()
+    }
+
+    private fun logoutUser() {
+        AlertDialog.Builder(this)
+            .setTitle("Logout")
+            .setMessage("Yakin ingin logout?\n\n⚠️ Bot akan berhenti jika sedang berjalan.")
+            .setPositiveButton("Ya") { _, _ ->
+                if (MyBotService.isServiceActive()) {
+                    stopBot()
+                }
+
+                com.example.ngontol.auth.UserAuthManager.logout(this)
+                LicenseManager.logout(this)
+
+                toast("✅ Logout berhasil")
+                updateUI()
+                showLoginDialog()
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     // ==================== BLACKLIST MANAGEMENT ====================
@@ -294,7 +438,7 @@ class MainActivity : AppCompatActivity() {
         toast("🗑️ $item dihapus dari blacklist")
     }
 
-    @SuppressLint("SetTextI18n")
+    @SuppressLint("SetTextI18n", "UseCompatLoadingForDrawables")
     private fun updateBlacklistUI() {
         b.blacklistContainer.removeAllViews()
 
@@ -358,52 +502,49 @@ class MainActivity : AppCompatActivity() {
     private fun showPersonaForm() {
         val persona = PersonaManager.getPersona(this)
 
-        // FIX: Clear blacklist items sebelum load data
         blacklistItems.clear()
 
-        // Set nilai form
         persona?.let {
             b.etBotName.setText(it.botName)
             b.etGender.setText(it.gender)
             b.etAddress.setText(it.address)
             b.etHobby.setText(it.hobby)
 
-            // FIX: Load blacklist dari data lama SETELAH clear
-            it.blacklist?.let { oldBlacklist ->
+            it.blacklist.let { oldBlacklist ->
                 blacklistItems.addAll(oldBlacklist)
             }
             updateBlacklistUI()
 
-            // SET RADIO BUTTON BERDASARKAN RELOG OPTION YANG DISIMPAN
             val radioId = when (it.relogOption) {
                 1 -> R.id.rbRelogAll
                 2 -> R.id.rbRelogUnread
                 3 -> R.id.rbNoRelog
+                4 -> R.id.rbHybrid
                 else -> R.id.rbNoRelog
             }
             b.rgRelogOption.check(radioId)
-
-            // Update currentRelogOption juga
             currentRelogOption = it.relogOption ?: 3
 
-            // Set app name jika ada
+            val autoHiValue = it.autoHi ?: 1
+            b.switchAuto.isChecked = (autoHiValue == 2)
+            currentAutoMode = autoHiValue
+
             if (!it.appName.isNullOrBlank()) {
                 b.etTargetName.setText(it.appName)
             }
         } ?: run {
-            // Jika persona null, set default values
             b.etBotName.setText("")
             b.etGender.setText("")
             b.etAddress.setText("")
             b.etHobby.setText("")
             b.rgRelogOption.check(R.id.rbNoRelog)
             currentRelogOption = 3
+            b.switchAuto.isChecked = false
+            currentAutoMode = 1
             b.etTargetName.setText("")
         }
 
-        // Clear new item input
         b.etNewBlacklistItem.setText("")
-
         b.panelForm.visibility = View.VISIBLE
         b.btnConfig.visibility = View.GONE
     }
@@ -412,9 +553,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAppPicker() {
         val apps = listOf(
+            "BF Relog" to "zxzc",
             "Sugo" to "com.voicemaker.android",
             "Timo" to "com.hwsj.club",
-            "Sugo Lite" to "com.fiya.android"
+            "Sugo Lite" to "com.fiya.android",
+            "Linky" to "com.real.unshow.linky",
+            "Siya" to "com.zr.siya",
+            "Toki" to "com.toki.android",
+            "Layla" to "com.layla.chat"
         )
 
         val names = apps.map { it.first }.toTypedArray()
@@ -443,18 +589,16 @@ class MainActivity : AppCompatActivity() {
 
         val oldPersona = PersonaManager.getPersona(this)
 
-        // FIX: Gunakan blacklistItems dari UI, bukan dari oldPersona
-        val relogOption = currentRelogOption
-
         val persona = Persona(
             botName = b.etBotName.text.toString().ifBlank { oldPersona?.botName ?: "" },
             gender = b.etGender.text.toString().ifBlank { oldPersona?.gender ?: "" },
             address = b.etAddress.text.toString().ifBlank { oldPersona?.address ?: "" },
             hobby = b.etHobby.text.toString().ifBlank { oldPersona?.hobby ?: "" },
-            blacklist = blacklistItems.toList(), // FIX: Pakai blacklist dari UI
+            blacklist = blacklistItems.toList(),
             appName = appName ?: oldPersona?.appName,
             appPackage = appPackage ?: oldPersona?.appPackage,
-            relogOption = relogOption
+            relogOption = currentRelogOption,
+            autoHi = currentAutoMode
         )
 
         if (persona.botName.isBlank()) {
@@ -488,6 +632,12 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun startBot() {
+        if (!com.example.ngontol.auth.UserAuthManager.isLoggedIn(this)) {
+            toast("❌ Login dulu sebelum menjalankan bot!")
+            showLoginDialog()
+            return
+        }
+
         val fakeGpsPos = b.spinnerFakeGps.selectedItemPosition
         if (fakeGpsPos > 0) {
             val intent = Intent(this, FakeGpsService::class.java)
@@ -504,22 +654,33 @@ class MainActivity : AppCompatActivity() {
         val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
         b.btnStart.text = "Stop Bot"
         b.btnStart.setBackgroundColor("#FF1744".toColorInt())
-        b.tvStatus.text= "\uD83D\uDFE2 BOT AKTIF [$time]"
+        b.tvStatus.text= "🟢 BOT AKTIF [$time]"
     }
 
     @SuppressLint("SetTextI18n")
     private fun stopBot() {
-        val stopIntent = Intent(this, MyBotService::class.java).apply {
-            action = MyBotService.ACTION_STOP
-        }
-        startService(stopIntent)
+        AlertDialog.Builder(this)
+            .setTitle("⚠️ Stop Bot")
+            .setMessage("Bot akan dihentikan dan Accessibility Service akan dimatikan.\n\nLanjutkan?")
+            .setPositiveButton("Ya") { _, _ ->
+                // 1. Stop services (ini akan trigger onDestroy -> disableSelf)
+                val stopIntent = Intent(this, MyBotService::class.java).apply {
+                    action = MyBotService.ACTION_STOP
+                }
+                startService(stopIntent)
+                stopService(Intent(this, FakeGpsService::class.java))
 
-        stopService(Intent(this, FakeGpsService::class.java))
+                toast("🛑 Stopping bot & disabling accessibility...")
 
-        val time = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-        b.btnStart.text = "Start Bot"
-        b.btnStart.setBackgroundColor("#00E676".toColorInt())
-        b.tvStatus.text= "\uD83D\uDD34 BOT BERHENTI [$time]"
+                // 3. Force close app untuk memastikan service mati
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    finishAffinity()
+                    android.os.Process.killProcess(android.os.Process.myPid())
+                    System.exit(0)
+                }, 500) // Delay lebih lama biar disableSelf() sempat jalan
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     @SuppressLint("UseKtx")
@@ -540,6 +701,13 @@ class MainActivity : AppCompatActivity() {
         UpdateManager.checkForUpdate(this) {
             toast("✅ Sudah versi terbaru")
         }
+        val prefs = getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("apiKeyz").apply()
+
+        val cooldownPrefs = getSharedPreferences("key_cooldown", Context.MODE_PRIVATE)
+        cooldownPrefs.edit().clear().apply()
+
+        Toast.makeText(this, "API keys cleared!", Toast.LENGTH_SHORT).show()
     }
 
     private fun showLicenseInfo() {
@@ -551,7 +719,7 @@ class MainActivity : AppCompatActivity() {
 
         val message = """
             👤 User: ${info.userName}
-            🔑 Key: ${info.key}
+            🔒 Key: ${info.key}
             📅 Expired: ${info.expiryDate ?: "Lifetime"}
         """.trimIndent()
 
@@ -654,8 +822,11 @@ class MainActivity : AppCompatActivity() {
         updateLicenseStatus()
         updateClearButton()
 
+        val isLoggedIn = com.example.ngontol.auth.UserAuthManager.isLoggedIn(this)
         val personaOK = PersonaManager.getPersona(this) != null
-        b.btnStart.isEnabled = personaOK
+
+        b.btnStart.isEnabled = isLoggedIn && personaOK
+        b.btnStart.alpha = if (b.btnStart.isEnabled) 1.0f else 0.5f
 
         ignoreFakeSpinnerCallback = true
         b.spinnerFakeGps.setSelection(fakeGpsManager.getSavedSelection())
@@ -685,8 +856,14 @@ class MainActivity : AppCompatActivity() {
                         3 -> "No Relog"
                         else -> "Tidak Diketahui"
                     }
-
                     appendLine("> Relog: $relogText")
+
+                    val autoHiText = when (persona.autoHi) {
+                        2 -> "ON"
+                        1 -> "OFF"
+                        else -> "OFF"
+                    }
+                    appendLine("> Auto Hi: $autoHiText")
                 }
 
                 appendLine("> Blacklist: ${if (persona.blacklist.isNotEmpty()) persona.blacklist.joinToString(", ") else "-"}")
@@ -714,7 +891,6 @@ class MainActivity : AppCompatActivity() {
             if (b.tvStatus.text.contains("BOT AKTIF")) {
                 b.tvStatus.append("\n🔴 BOT BERHENTI [$time]")
                 b.tvStatus.setTextColor("#FF1744".toColorInt())
-
             }
         }
     }
@@ -732,10 +908,13 @@ class MainActivity : AppCompatActivity() {
     // ==================== UTILS ====================
 
     private fun checkPrerequisites(): Boolean {
+        val isLoggedIn = com.example.ngontol.auth.UserAuthManager.isLoggedIn(this)
         val personaOK = PersonaManager.getPersona(this) != null
         val accOK = isAccessibilityEnabled()
 
         val status = buildString {
+            append("Login: ")
+            appendLine(if (isLoggedIn) "[200 OK]" else "[NOT LOGGED IN]")
             append("Profile: ")
             appendLine(if (personaOK) "[200 OK]" else "[NULL]")
             append("Accessibility: ")
@@ -743,6 +922,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         b.tvStatus.text = status
+
+        if (!isLoggedIn) {
+            toast("❌ Login dulu sebelum menjalankan bot!")
+            showLoginDialog()
+            return false
+        }
 
         if (!personaOK) {
             toast("Isi & save config dulu!")
@@ -774,20 +959,20 @@ class MainActivity : AppCompatActivity() {
     private fun openDevOptions() {
         try {
             val devOptionEnabled = try {
-                android.provider.Settings.Global.getInt(
+                Settings.Global.getInt(
                     contentResolver,
-                    android.provider.Settings.Global.DEVELOPMENT_SETTINGS_ENABLED
+                    Settings.Global.DEVELOPMENT_SETTINGS_ENABLED
                 ) == 1
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 false
             }
 
             val intent: Intent
 
             if (devOptionEnabled) {
-                intent = Intent(android.provider.Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
+                intent = Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)
             } else {
-                intent = Intent(android.provider.Settings.ACTION_DEVICE_INFO_SETTINGS)
+                intent = Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)
                 Toast.makeText(
                     this,
                     "Tap: Nomor versi/Build number/nomor build 7x.",
@@ -798,7 +983,7 @@ class MainActivity : AppCompatActivity() {
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             startActivity(intent)
 
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             try {
                 val fallbackIntent = Intent("android.settings.MY_DEVICE_INFO_SETTINGS")
                 fallbackIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)

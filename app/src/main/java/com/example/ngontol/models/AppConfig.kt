@@ -10,5 +10,9 @@ data class AppConfig(
     val conversationTabId: String,
     val allTabId: String,
     val unreadTabId: String,
+    val homeNew: String,
+    val hiButton: String,
+    val rechargeId: String,
+    val unreadTabText: String = "",
     val cancelButtonIds: List<String> = emptyList()
 )

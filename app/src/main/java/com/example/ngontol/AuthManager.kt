@@ -2,7 +2,7 @@ package com.example.ngontol.auth
 
 import android.content.Context
 import androidx.core.content.edit
-import com.example.ngontol.models.User
+import com.example.ngontol.User
 
 object AuthManager {
 

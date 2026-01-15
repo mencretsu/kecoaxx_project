@@ -3,7 +3,6 @@ package com.example.ngontol
 import android.accessibilityservice.AccessibilityService
 import android.annotation.SuppressLint
 import android.app.*
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
@@ -13,10 +12,14 @@ import android.view.accessibility.AccessibilityEvent
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
-import com.example.ngontol.firebase.FirebaseManager
+import com.example.ngontol.services.S0Service
 import com.example.ngontol.services.S1Service
 import com.example.ngontol.services.S2Service
 import com.example.ngontol.services.S3Service
+import com.example.ngontol.services.S4Service
+import com.example.ngontol.services.S5Service
+import com.example.ngontol.services.S6Service
+import com.example.ngontol.services.S7Service
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -26,8 +29,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import java.util.LinkedHashSet
+import androidx.core.content.edit
 
+@SuppressLint("AccessibilityPolicy")
 @Suppress("DEPRECATION")
 class MyBotService : AccessibilityService() {
 
@@ -50,7 +54,6 @@ class MyBotService : AccessibilityService() {
         fun isServiceActive(): Boolean = instance != null && isServiceEnabled
     }
 
-    private val processed = LinkedHashSet<String>()
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -58,32 +61,49 @@ class MyBotService : AccessibilityService() {
         Log.d(TAG, "📥 onStartCommand: action = ${intent?.action}")
 
         if (intent?.action == ACTION_STOP) {
-            Log.d(TAG, "🛑 ACTION_STOP received - stopping bot")
+            Log.d(TAG, "🛑 ACTION_STOP received - FORCE STOPPING")
 
             // ✅ Stop bot logic
             isServiceEnabled = false
             allowedToRun = false
 
-            getSharedPreferences("bot_prefs", MODE_PRIVATE).edit()
-                .putBoolean("service_alive", false)
-                .apply()
+            getSharedPreferences("bot_prefs", MODE_PRIVATE).edit {
+                putBoolean("service_alive", false)
+            }
 
             // ✅ Broadcast ke MainActivity
             sendBroadcast(Intent("com.example.ngontol.BOT_STATUS_CHANGED"))
 
             // ✅ Cancel notif
-            val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notifManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notifManager.cancel(NOTIF_ID)
 
-            // ✅ Stop foreground tapi JANGAN stopSelf()
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            // ✅ Stop foreground dengan flag yang benar
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            } else {
+                @Suppress("DEPRECATION")
                 stopForeground(true)
             }
 
-            Log.d(TAG, "✅ Bot stopped, accessibility tetap ON")
+            // ✅ Cancel coroutines
+            serviceScope.cancel()
 
-            // ✅ PENTING: Return START_STICKY, biarkan accessibility tetap hidup
-            return START_STICKY
+            // ✅ Disable accessibility service secara programmatic
+            try {
+                disableSelf()
+                Log.d(TAG, "✅ Accessibility service disabled")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Failed to disable self: ${e.message}")
+            }
+
+            // ✅ Stop service completely
+            stopSelf()
+
+            Log.d(TAG, "✅ Service FULLY STOPPED")
+
+            // ✅ JANGAN return START_STICKY, pakai START_NOT_STICKY
+            return START_NOT_STICKY
         }
 
         // Start bot jika belum running
@@ -106,6 +126,7 @@ class MyBotService : AccessibilityService() {
         }
     }
 
+    @SuppressLint("HardwareIds")
     @RequiresApi(Build.VERSION_CODES.O)
     private fun checkDeviceStatus() {
         val deviceId = Settings.Secure.getString(
@@ -153,13 +174,13 @@ class MyBotService : AccessibilityService() {
                     allowedToRun = false
                     isServiceEnabled = false
 
-                    getSharedPreferences("bot_prefs", MODE_PRIVATE).edit()
-                        .putBoolean("service_alive", false)
-                        .apply()
+                    getSharedPreferences("bot_prefs", MODE_PRIVATE).edit {
+                        putBoolean("service_alive", false)
+                    }
 
                     sendBroadcast(Intent("com.example.ngontol.BOT_STATUS_CHANGED"))
 
-                    val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                    val notifManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
                     notifManager.cancel(NOTIF_ID)
 
                     showToast("⛔ Bot berhenti (status OFF)")
@@ -195,9 +216,9 @@ class MyBotService : AccessibilityService() {
         Log.d(TAG, "🚀 Starting bot...")
         isServiceEnabled = true
 
-        getSharedPreferences("bot_prefs", MODE_PRIVATE).edit()
-            .putBoolean("service_alive", true)
-            .apply()
+        getSharedPreferences("bot_prefs", MODE_PRIVATE).edit {
+            putBoolean("service_alive", true)
+        }
 
         // ✅ Broadcast ke MainActivity
         sendBroadcast(Intent("com.example.ngontol.BOT_STATUS_CHANGED"))
@@ -209,9 +230,15 @@ class MyBotService : AccessibilityService() {
         showNotif()
 
         when (pkg) {
+            "zxzc" -> S0Service.start(this, serviceScope) {isServiceEnabled}
             "com.voicemaker.android" -> S1Service.start(this, serviceScope) { isServiceEnabled }
             "com.hwsj.club" -> S2Service.start(this, serviceScope) { isServiceEnabled }
             "com.fiya.android" -> S3Service.start(this, serviceScope) { isServiceEnabled }
+            "com.real.unshow.linky" -> S4Service.start(this, serviceScope) { isServiceEnabled }
+            "com.zr.siya" -> S5Service.start(this, serviceScope) { isServiceEnabled }
+            "com.toki.android" -> S6Service.start(this, serviceScope) { isServiceEnabled }
+            "com.layla.chat" -> S7Service.start(this, serviceScope) { isServiceEnabled }
+
         }
 
         Log.d(TAG, "✅ Bot started successfully")
@@ -273,7 +300,7 @@ class MyBotService : AccessibilityService() {
 
     private fun ensureBotChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Bot Service",
@@ -296,9 +323,14 @@ class MyBotService : AccessibilityService() {
             .getString("last_app_package", "") ?: ""
 
         when (pkg) {
+            "zxzc" -> S0Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
             "com.voicemaker.android" -> S1Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
             "com.hwsj.club" -> S2Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
             "com.fiya.android" -> S3Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
+            "com.real.unshow.linky" -> S4Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
+            "com.zr.siya" -> S5Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
+            "com.toki.android" -> S6Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
+            "com.layla.chat" -> S7Service.onAccessibilityEvent(this, serviceScope) { isServiceEnabled }
         }
     }
 
@@ -317,7 +349,7 @@ class MyBotService : AccessibilityService() {
             Log.d(TAG, "🔄 Re-showing notification after task removed")
 
             // Cancel dulu, baru show lagi
-            val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notifManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notifManager.cancel(NOTIF_ID)
 
             // Show notif lagi
@@ -330,6 +362,15 @@ class MyBotService : AccessibilityService() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "💀 onDestroy called")
+
+        // ✅ Try disable self saat destroy
+        try {
+            disableSelf()
+            Log.d(TAG, "✅ Accessibility disabled from onDestroy")
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Failed to disable from onDestroy: ${e.message}")
+        }
+
         cleanupResources()
     }
 
@@ -340,6 +381,7 @@ class MyBotService : AccessibilityService() {
         return super.onUnbind(intent)
     }
 
+    @SuppressLint("UseKtx")
     private fun cleanupResources() {
         Log.d(TAG, "🧹 Cleaning up resources...")
 
@@ -353,7 +395,7 @@ class MyBotService : AccessibilityService() {
 
         sendBroadcast(Intent("com.example.ngontol.BOT_STATUS_CHANGED"))
 
-        val notifManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val notifManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         notifManager.cancel(NOTIF_ID)
 
         Log.d(TAG, "✅ Cleanup complete")

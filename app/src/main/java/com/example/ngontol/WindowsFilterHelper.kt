@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.example.ngontol
 
 import android.accessibilityservice.AccessibilityService
@@ -64,7 +66,7 @@ object WindowFilterHelper {
     /**
      * Check apakah node adalah dari overlay sendiri
      */
-    fun isOwnOverlay(node: AccessibilityNodeInfo?, ownPackageName: String): Boolean {
+    fun isOwnOverlay(node: AccessibilityNodeInfo?): Boolean {
         if (node == null) return false
 
         return node.packageName == OWN_PACKAGE ||
@@ -79,7 +81,7 @@ object WindowFilterHelper {
         if (node == null) return
 
         // Skip jika dari overlay sendiri
-        if (isOwnOverlay(node, ownPackageName)) {
+        if (isOwnOverlay(node)) {
             return
         }
 

@@ -6,15 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.LocationManager
-import android.net.Uri
-import android.os.Build
 import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 object PermissionManager {
     const val REQUEST_LOCATION = 1001
-    const val REQUEST_OVERLAY = 1002
     const val REQUEST_MOCK_LOCATION = 1003
 
     fun hasLocationPermission(context: Context): Boolean {
@@ -46,24 +43,6 @@ object PermissionManager {
         context.startActivity(intent)
     }
 
-    fun hasOverlayPermission(context: Context): Boolean {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Settings.canDrawOverlays(context)
-        } else {
-            true
-        }
-    }
-
-    fun requestOverlayPermission(activity: Activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${activity.packageName}")
-            )
-            activity.startActivityForResult(intent, REQUEST_OVERLAY)
-        }
-    }
-
     fun isMockLocationEnabled(context: Context): Boolean {
         return try {
             val devOptions = Settings.Secure.getInt(
@@ -72,7 +51,7 @@ object PermissionManager {
                 0
             )
             devOptions == 1
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             true // Assume enabled
         }
     }
@@ -83,7 +62,7 @@ object PermissionManager {
                 Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS),
                 REQUEST_MOCK_LOCATION
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             activity.startActivity(Intent(Settings.ACTION_SETTINGS))
         }
     }

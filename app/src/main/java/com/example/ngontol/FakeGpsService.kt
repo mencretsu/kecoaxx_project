@@ -1,8 +1,11 @@
 package com.example.ngontol
 
 import android.annotation.SuppressLint
-import android.app.*
-import android.content.Context
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
 import android.content.Intent
 import android.location.Location
 import android.os.Build
@@ -76,7 +79,7 @@ class FakeGpsService : Service() {
                 setShowBadge(false)
             }
 
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
     }
@@ -87,11 +90,7 @@ class FakeGpsService : Service() {
             this,
             0,
             notificationIntent,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
@@ -105,7 +104,7 @@ class FakeGpsService : Service() {
     }
 
     private fun loadFakeGpsCoordinates() {
-        val prefs = getSharedPreferences("bot_prefs", Context.MODE_PRIVATE)
+        val prefs = getSharedPreferences("bot_prefs", MODE_PRIVATE)
         currentLat = prefs.getFloat("fake_gps_lat", 0f).toDouble()
         currentLng = prefs.getFloat("fake_gps_lng", 0f).toDouble()
         cityName = prefs.getString("fake_gps_city", "Unknown") ?: "Unknown"

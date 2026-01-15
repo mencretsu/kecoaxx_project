@@ -5,7 +5,7 @@ object OpenerData {
         "[Undangan]"
     )
 
-    val cocokPatterns = listOf("[Cocok]Dia sangat cocok denganmu!")
+    val cocokPatterns = listOf("[Cocok]Dia sangat cocok denganmu!","dia sangat cocok", "tidak ada balasan", "hai","halo")
 
 
     val genZOpeners = listOf(
@@ -106,7 +106,7 @@ object OpenerData {
         "km pasti jago pegang kepala",
         "kerja sambil mikirin aku ya?",
         "bales dong, aku gelisah 😢",
-        "km keliatan produktif bgt..",
+        "km keliatan keren bgt..",
         "siang gini enaknya manja",
         "aku butuh perhatian skrg~",
         "gak ada chat km sepi bgt",

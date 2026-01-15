@@ -1,5 +1,6 @@
 package com.example.ngontol
 
+import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -27,6 +28,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 import kotlin.random.Random
 
+@Suppress("DEPRECATION")
 class OverlayService : Service() {
     private var wm: WindowManager? = null
     private var overlayView: View? = null
@@ -39,7 +41,7 @@ class OverlayService : Service() {
         private var serviceRunning = false
 
         fun isServiceRunning(context: Context): Boolean {
-            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val am = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
             return am.getRunningServices(Integer.MAX_VALUE).any {
                 it.service.className == OverlayService::class.java.name
             }
@@ -115,6 +117,7 @@ class OverlayService : Service() {
         return START_STICKY
     }
 
+    @SuppressLint("InflateParams")
     private fun setupOverlay() {
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_dummy, null).apply {

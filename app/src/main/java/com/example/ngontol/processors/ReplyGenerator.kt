@@ -20,7 +20,8 @@ object ReplyGenerator {
         persona: Persona,
         userCity: String? = null
     ): String {
-        // Check if should use opener
+        // Check if should use opener'
+
         if (OpenerSelector.shouldUseOpener(message.message)) {
             return OpenerSelector.getOpener()
         }

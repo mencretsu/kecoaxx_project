@@ -2,12 +2,11 @@ package com.example.ngontol.utils
 
 object BotConstants {
     // ✅ 2 jam restart interval (lebih masuk akal)
-    const val CACHE_CLEAR_INTERVAL = 30 * 60 * 1000L  // 30 menit
+    const val CACHE_CLEAR_INTERVAL = 15 * 60 * 1000L  // 30 menit
     const val POST_RESTART_COOLDOWN = 30000L              // 30 detik
     const val MIN_RESTART_INTERVAL = 30000L               // 30 detik
-    const val AUTO_LAUNCH_DELAY = 10000L                  // 10 detik
+    const val AUTO_LAUNCH_DELAY = 10000L                  // 10 deti0
     const val LAUNCH_COOLDOWN = 30000L                    // 30 detik
-    const val REFRESH_CACHE = 15000L
 
     const val MAX_CACHE = 20
     const val DEFAULT_INTERVAL = 2500L

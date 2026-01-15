@@ -1,11 +1,14 @@
 package com.example.ngontol
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.drawable.GradientDrawable
 import android.inputmethodservice.InputMethodService
 import android.provider.Settings
+import android.util.Log
 import android.view.Gravity
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Space
@@ -45,6 +48,7 @@ class BotKeyboard : InputMethodService() {
         setPadding(8, 16, 8, 16)
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onCreateInputView(): View {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -123,7 +127,7 @@ class BotKeyboard : InputMethodService() {
             text = if (isCaps) "▼" else "▲"
             setOnClickListener {
                 isCaps = !isCaps
-                onCreateInputView()?.let { setInputView(it) }
+                setInputView(onCreateInputView())
             }
         }.also { it.styleButton(bgColor = 0xFF444444.toInt()) }
 
@@ -229,5 +233,28 @@ class BotKeyboard : InputMethodService() {
     /** Dipanggil dari service untuk ngetik otomatis */
     fun typeText(text: String) {
         currentInputConnection?.commitText(text, 1)
+    }
+    /** Pencet tombol Enter/Send terus hide keyboard */
+    /** Hide keyboard */
+    fun hideKeyboard() {
+        try {
+            requestHideSelf(0) // Cara paling proper untuk IME
+        } catch (e: Exception) {
+            // Ignore error
+        }
+    }
+
+    /** Press Enter simple dan efektif */
+    fun pressEnter() {
+        // PASTIKAN ini tidak ada heavy operation
+        currentInputConnection?.let { ic ->
+            try {
+                // Cepat dan simple
+                ic.performEditorAction(android.view.inputmethod.EditorInfo.IME_ACTION_SEND)
+                requestHideSelf(0)
+            } catch (e: Exception) {
+                // Ignore, jangan log
+            }
+        }
     }
 }

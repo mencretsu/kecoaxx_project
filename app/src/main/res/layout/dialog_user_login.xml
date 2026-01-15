@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Username"
+        android:textColor="#00FF66"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/etUsername"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="contoh: bahlil ganteng"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#666666"
+        android:background="@drawable/edittext_background"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:fontFamily="monospace"
+        android:textSize="14sp"
+        android:inputType="textNoSuggestions"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Kode Akses"
+        android:textColor="#00FF66"
+        android:textSize="12sp"
+        android:fontFamily="monospace"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/etAccessCode"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:hint="masukkan kode"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#666666"
+        android:background="@drawable/edittext_background"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:fontFamily="monospace"
+        android:textSize="14sp"
+        android:inputType="textPassword"
+        android:layout_marginBottom="8dp"/>
+
+
+</LinearLayout>

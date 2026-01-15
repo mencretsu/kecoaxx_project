@@ -15,7 +15,10 @@ object OpenerSelector {
     }
 
     fun shouldUseOpener(message: String): Boolean {
-        return OpenerData.cocokPatterns.any { message.contains(it) } ||
-                OpenerData.partnerPatterns.any { message.contains(it) }
+        return OpenerData.cocokPatterns.any {
+            message.contains(it, ignoreCase = true) // ✅ Ignore case
+        } || OpenerData.partnerPatterns.any {
+            message.contains(it, ignoreCase = true)
+        }
     }
 }

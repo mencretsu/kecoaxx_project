@@ -7,7 +7,7 @@ object TextCleaner {
 
     private val FORBIDDEN_WORDS = listOf(
         // Social Media & Messaging Apps
-        "whatsapp", "wa", "watsap", "whasap", "telegram", "tele", "tg", "telegramm",
+        "whatsapp", "wa", "watsap", "whasap", "telegram", "tele", "tg", "telegramm", "semut",
         "instagram", "ig", "insta", "instragam", "facebook", "fb", "facbook", "facebok",
         "tiktok", "snapchat", "snap", "michat", "mi chat", "messenger", "msngr",
         "line", "wechat", "discord", "skype", "viber", "signal", "kik",
@@ -26,7 +26,7 @@ object TextCleaner {
         "setan", "syaiton", "satan", "syetan", "iblis", "sial", "sialan", "bgsd",
         "bodoh", "bod0h", "bdoh", "bodo", "pantek", "pantk", "panteq", "pntek",
         "jancok", "jancoek", "jancoq", "jencok", "jancuk", "cok",
-        "taik", "tae", "t4i", "tayk", "tai", "eek", "ek",
+        "taik", "tae", "t4i", "tayk", "tai", "eek",
 
         // Toxic & Profanity (English)
         "fuck", "fck", "fack", "fuk", "fcku", "fukin", "fcking", "fucker", "fker", "motherfucker",
@@ -46,18 +46,18 @@ object TextCleaner {
         "ngentot", "ngntot", "ngentod", "ngntd", "ngntl", "entot", "ntot",
         "pepek", "pepk", "pepq", "puki", "pepe",
         "jembut", "jmbt", "jemb0t", "jmb0t",
-        "colmek", "colmekk", "coli", "c0li", "colok", "cl",
+        "colmek", "colmekk", "coli", "c0li", "colok",
         "onani", "onan1", "crotz", "crot", "crott", "becek",
         "pelacur", "lonte", "lontee", "lonteq", "perek", "jablay", "jabl4y",
         "bencong", "banci", "waria", "bencot",
         "toket", "tobrut", "tete", "nenen", "susu", "tetek",
         "pantat", "silit", "bokong", "pntt",
         "puting", "pentil", "pntl",
-        "ngaceng", "ngacng", "tegang", "ereksi",
-        "bh", "bra", "cd", "celdam",
+        "ngaceng", "ngacng", "ereksi",
+        "bh", "bra", "celdam",
         "emut", "hisap", "elus", "raba", "pegang",
-        "kasur", "ranjang", "kamar", "hotel", "kos",
-        "klamin", "kelamin", "vital", "intim",
+        "kasur", "ranjang",  "hotel", "kos",
+        "klamin", "kelamin", "vital",
         "sangee", "sange", "sangeee", "horny", "birahi",
         "desah", "desahan", "erang", "erangan", "stmj", "stm",
 
@@ -66,10 +66,10 @@ object TextCleaner {
         "pussy", "pusy", "pussi", "puzzy", "pu55y", "vagina", "vag",
         "cum", "cumm", "jizz", "sperm",
         "slut", "slutty", "s1ut", "slutt",
-        "whore", "hore", "ho", "h0e", "hoe", "prostitute",
+        "whore", "h0e", "hoe", "prostitute",
         "sex", "s3x", "sexy", "s3xy",
         "porn", "p0rn", "porno", "pornhub", "xvideos", "xnxx",
-        "onlyfans", "of", "nsfw",
+        "onlyfans", "nsfw",
         "boobs", "boob", "tits", "titties", "breast",
         "nude", "naked", "telanjang",
         "blowjob", "bj", "handjob", "hj", "footjob",
@@ -80,35 +80,34 @@ object TextCleaner {
         "bokep", "bokp", "b0kep", "jav",
 
         // Slang & Mancing
-        "hiya", "hiyaaaat", "cil", "gacil", "gacor", "gas", "gaskeun", "gasskk",
-        "aowkwk", "wkwk", "wkkw", "kwkw",
+        "hiya", "hiyaaaat", "cil", "gacil", "gacor", "gaskeun", "gasskk",
 
         // Substances
         "narko", "narkoba", "sabu", "ganja", "pil", "drugs", "weed", "cocaine", "heroin",
-        "racun", "narkotika", "obat", "putaw",
+        "racun", "narkotika", "putaw",
 
         // Weapons & Violence
         "bom", "bomb", "granat", "grenade", "pistol", "senapan", "peluru", "senjata", "weapon",
-        "bunuh", "kill", "mati", "die", "bundir", "suicide",
+        "bunuh", "kill", "die", "bundir", "suicide",
 
         // Marriage & Dating Scam
-        "nikah", "kawin", "married", "marry", "menikah", "merit",
+        "nikah", "kawin", "married", "marry", "menikah", "merit", "vc","vcs",
 
         // Transaction & Scam Related
-        "rekening", "rek", "rekber", "rekeningber", "escrow",
+        "rekening", "rek", "rekber", "rekeningber", "escrow", "uang","pulsa","transfer",
         "dana", "ovo", "gopay", "shopeepay", "linkaja", "jenius", "blu",
         "atm", "bca", "mandiri", "bri", "bni", "cimb", "permata", "bank",
         "top up", "topup", "isi saldo", "withdraw", "wd", "tarik tunai",
         "payment", "pembayaran", "pay", "paid", "lunas",
         "invoice", "bill", "tagihan", "cicilan", "utang", "hutang", "pinjam",
-        "invest", "investasi", "profit", "untung", "cuan", "passive income",
-        "bisnis", "business", "peluang", "opportunity", "join", "daftar", "register",
+        "invest", "profit", "passive income",
+        "bisnis", "business", "peluang", "opportunity", "join",
         "member", "membership", "vip", "premium", "upgrade", "paket",
-        "mlm", "multi level", "network marketing", "reseller", "dropship",
+         "multi level", "network marketing",  "dropship",
         "komisi", "commission", "cashback", "reward", "hadiah",
-        "voucher", "kupon", "diskon", "sale",
-        "cod", "barang", "pengiriman", "jne", "jnt",
-        "fake", "palsu", "scam", "penipuan", "tipu", "bohong", "nipu",
+         "sale",
+        "cod",  "pengiriman", "jne", "jnt",
+        "fake", "scam", "penipuan",
         "ktp", "identitas", "foto ktp", "selfie ktp", "verifikasi", "verify",
         "kode otp", "otp", "kode verifikasi", "sms", "token",
         "pinjol", "kredit", "loan", "borrow",
@@ -116,33 +115,52 @@ object TextCleaner {
         "judi", "slot", "casino", "betting", "taruhan", "togel", "poker",
         "admin", "cs", "customer service", "hub admin", "chat admin",
         "klaim", "claim", "redeem", "tukar",
-        "modus", "penjahat", "hacker", "hack", "phising", "phishing",
-        "giveaway", "ga", "undian", "lucky draw", "pemenang", "winner",
+         "penjahat", "hacker", "phising", "phishing",
+        "giveaway", "undian", "lucky draw", "winner",
         "survey", "survei", "kuesioner", "questionnaire", "isi form",
         "referral", "referal", "refferal", "ref", "ajak teman", "invite",
         "marketplace", "tokopedia", "shopee", "lazada", "bukalapak", "blibli",
         "cek ongkir", "ongkos kirim", "resi", "tracking", "lacak",
         "password", "pass", "pw", "sandi", "kata sandi",
         "akun", "account", "username", "user", "login", "sign in",
-        "minta", "kasih", "bagi", "share", "berbagi",
-        "butuh", "perlu", "need", "urgent", "darurat", "emergency",
-        "cepat", "fast", "kilat", "instant", "instan", "sekarang", "now",
-        "mudah", "gampang", "easy", "simple", "tanpa ribet",
-        "jangan bilang", "rahasia", "secret", "private", "pribadi",
-        "blokir", "block", "banned", "suspend",
+         "share", "berbagi",
+         "need", "urgent", "darurat", "emergency",
+        "cepat", "fast", "kilat", "instant", "instan", "now",
+        "easy", "secret", "private",
+        "blokir", "block", "banned", "suspend", "anj", "anjing",
         "seller", "penjual", "jual", "sell", "beli", "buy",
-        "trusted", "terpercaya", "aman", "safe", "legit",
+         "legit",
         "testimoni", "testi", "review", "ulasan", "feedback",
         "garansi", "guarantee", "jaminan", "refund", "return",
 
         // Miscellaneous Spam/Scam
-        "video", "link", "klik", "click", "download", "unduh", "spesial", "special",
-        "promo", "bonus", "gratis", "free"
+        "video", "link", "click", "download", "unduh", "sial",
+        "promo", "bonus", "free", "nomornya", "nomernya", "nomormu"
     )
+    private val PHONE_REGEX = Regex(
+        // Super robust - detect nomor telepon dengan berbagai separator
+        // 0 diikuti 9-12 digit dengan optional separator (dash, spasi, dot, underscore, parenthesis, slash, comma)
+        "\\b0[0-9][0-9\\s\\-._()\\[\\]/,]*[0-9]{7,}\\b|" +
+                // +62 atau 62 (country code) dengan separator
+                "\\+?62[0-9\\s\\-._()\\[\\]/,]*[0-9]{8,}|" +
+                // Format: (0)811 2345 6789 atau variasi lainnya
+                "\\(0\\)[0-9\\s\\-._()\\[\\]/,]{9,}|" +
+                // Catch: 081-123-456-789 (multiple dash)
+                "\\b0[0-9](?:[\\s\\-._,]+[0-9]+){3,}\\b|" +
+                // Catch: 081.123.456.789 (dengan dot)
+                "\\b0[0-9](?:\\.[0-9]{2,4})+\\b|" +
+                // Catch: 081_123_456_789 (dengan underscore)
+                "\\b0[0-9](?:_[0-9]{2,4})+\\b|" +
+                // Catch: 081(123)456(789) atau variant bracket
+                "\\b0[0-9](?:\\([0-9]+\\))*[0-9]{6,}\\b"
+        , RegexOption.IGNORE_CASE)
 
-    private val DEFAULT_BLACKLIST = listOf("agen", "agency", "partner", "mengikutimu.")
+    // Fungsi helper untuk mengecek apakah text mengandung nomor
+    private fun containsPhoneNumber(text: String): Boolean {
+        return PHONE_REGEX.containsMatchIn(text)
+    }
+    private val DEFAULT_BLACKLIST = listOf("agen", "agency", "partner", "mengikutimu.", "asisten resmi")
 
-    // ✅ OPTIMIZED: Compile regex ONCE at initialization
     private val forbiddenRegex: Regex by lazy {
         val pattern = FORBIDDEN_WORDS.joinToString("|") { Regex.escape(it) }
         Regex("\\b($pattern)\\b", RegexOption.IGNORE_CASE)
@@ -154,27 +172,50 @@ object TextCleaner {
         "\"" to " ",
         "~" to "...",
         "*" to " ",
-        ":" to " ",
+        "\uD83E\uDD2A" to " ",
+        "\uD83D\uDE12" to " ",
+        "\uD83D\uDE1C" to " ",
+        "\uD83D\uDE1B" to " ",
+         ":" to " ",
         "boong" to "bohong"
     )
 
     private val URL_REGEX = Regex("(https?://\\S+|www\\.\\S+)")
     private val IMG_REGEX = Regex("(!\\[.*?]\\(.*?\\)|\\[image.*?]|\\.jpg|\\.jpeg|\\.png|\\.gif|\\.webp)", RegexOption.IGNORE_CASE)
     private val ENGLISH_REGEX = Regex("\\b(the|you|your|are|is|am|my|me|a|an|for|with|can|will|shall|of|and|to|in|on|from|by|it|at|as)\\b", RegexOption.IGNORE_CASE)
-
-    private val ALLOWED_LAUGH_EMOJI = listOf(
-        "😂","🤣","😆","😹","😅","😁",
-        "😀","😃","😄","😅","😆","😉","😊","😋","😎","😍","😘","😗","😙","😚","🙂",
-        "🤗","🤩","🤔","🤨","😐","😑","😶","🙄","😏","😣","😥","😮","🤐","😯","😪",
-        "😫","🥱","😴","😌","😛","😜","😝","🤤","😒","😓","😔","😕","🙃","🫠","🤑",
-        "😲","☹️","🙁","😖","😞","😟","😤","😢","😭","😦","😧","😨","😩","🤯","😬",
-        "😰","😱","🥵","🥶","😳","🤪","😵","😵‍💫","🥴","😠","😡","🤬","😷","🤒",
-        "🤕","🤢","🤮","🤧","😇","🥳","🥸","🥺","🤠","🫢","🫣","🫡","🤥","🫨",
-        "👋","🤚","🖐","✋","🖖","👌","🤌","🤏","✌️","🤞","🫰","🤟","🤘","🤙",
-        "👈","👉","👆","🖕","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌",
-        "🫶","👐","🤲","🙏","✍️","💅","🤳","💪","🦾"
+    // Whitelist emoji yang BOLEH lewat (sisanya dihapus semua)
+    private val ALLOWED_LAUGH_EMOJI = setOf(
+        "😂", "🤣", "😆", "😹", "😅", "😁",
+        "😀", "😃", "😄", "😊", "😋", "😎", "😍", "😘", "😗", "😙", "😚", "🙂",
+        "🤗", "🤩", "🤔", "🤨", "😐", "😑", "😶", "🙄", "😏", "😣", "😥", "😮", "🤐", "😯", "😪",
+        "😫", "🥱", "😴", "😌", "😝", "🤤", "😓", "😔", "😕", "🙃", "🫠", "🤑", "😲",
+        "☹️", "🙁", "😖", "😞", "😟", "😤", "😢", "😭", "😦", "😧", "😨", "😩", "🤯", "😬",
+        "😰", "😱", "🥵", "🥶", "😳", "😵", "😵‍💫", "🥴", "😠", "😡", "🤬", "😷", "🤒",
+        "🤕", "🤢", "🤮", "🤧", "😇", "🥳", "🥸", "🥺", "🤠", "🫢", "🫣", "🫡", "🤥", "🫨",
+        "👋", "🤚", "🖐", "✋", "🖖", "👌", "🤌", "🤏", "✌️", "🤞", "🫰", "🤟", "🤘", "🤙",
+        "👈", "👉", "👆", "🖕", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛", "🤜", "👏", "🙌",
+        "🫶", "👐", "🤲", "🙏", "✍️", "💅", "🤳", "💪", "🦾"
     )
-    private val EMOJI_REGEX = Regex("[\\p{So}\\p{Cn}]")
+
+    // Regex untuk nangkep SEMUA emoji
+    private val EMOJI_REGEX = Regex(
+        "[\\p{So}\\p{Sc}\\p{Sk}\\p{Sm}]|" + // Unicode symbols
+                "[\\u2600-\\u27BF]|" + // Misc symbols
+                "[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]|" + // Surrogate pairs (emoji modern)
+                "[\\u2300-\\u23FF]|" + // Misc technical
+                "\\u2B50|" + // Star
+                "[\\u231A-\\u231B]|" + // Watch
+                "[\\u23E9-\\u23FA]|" + // Media controls
+                "[\\u25AA-\\u25FE]|" + // Geometric shapes
+                "[\\u2934-\\u2935]|" + // Arrows
+                "[\\u2190-\\u21FF]|" + // More arrows
+                "\\u3030|" + // Wavy dash
+                "\\u303D|" + // Part alternation mark
+                "\\u3297|" + // Japanese congratulations
+                "\\u3299|" + // Japanese secret
+                "\\uFE0F|" + // Variation selector
+                "\\u200D" // Zero Width Joiner
+    )
 
     fun clean(
         text: String,
@@ -193,7 +234,7 @@ object TextCleaner {
             Regex("\\b${Regex.escape(userName)}\\b", RegexOption.IGNORE_CASE)
         ) {
             val firstWord = Regex("[A-Za-z]+").find(it.value)?.value ?: ""
-            "ayang $firstWord"
+            firstWord  // ✅ Hapus "ayang " di sini
         }
 
         REPLACE_PATTERNS.forEach { (old, new) -> cleaned = cleaned.replace(old, new) }
@@ -203,17 +244,15 @@ object TextCleaner {
             .replace("[\\[\\]{}]".toRegex(), "")
 
         listOf("hayo", "hayoo", "hayooo").forEach {
-            cleaned = cleaned.replace(Regex("\\b$it\\b", RegexOption.IGNORE_CASE), "beb")
+            cleaned = cleaned.replace(Regex("\\b$it\\b", RegexOption.IGNORE_CASE), " ")
         }
 
-        // ✅ OPTIMIZED: Single regex for ALL forbidden words
         cleaned = forbiddenRegex.replace(cleaned) { match ->
             val txt = match.value
             val half = (txt.length + 1) / 2
             txt.take(half) + "*".repeat(txt.length - half)
         }
 
-        // ✅ OPTIMIZED: Handle persona blacklist separately (if provided)
         persona?.blacklist?.let { blacklist ->
             if (blacklist.isNotEmpty()) {
                 val personaPattern = blacklist.joinToString("|") { Regex.escape(it) }
@@ -227,7 +266,6 @@ object TextCleaner {
             }
         }
 
-        // ✅ Handle DEFAULT_BLACKLIST
         val defaultPattern = DEFAULT_BLACKLIST.joinToString("|") { Regex.escape(it) }
         val defaultRegex = Regex("\\b($defaultPattern)\\b", RegexOption.IGNORE_CASE)
         cleaned = defaultRegex.replace(cleaned) { match ->
@@ -236,12 +274,40 @@ object TextCleaner {
             txt.take(half) + "*".repeat(txt.length - half)
         }
 
-        cleaned = cleaned.map { char ->
-            val str = char.toString()
-            if (ALLOWED_LAUGH_EMOJI.contains(str)) str else {
-                if (EMOJI_REGEX.containsMatchIn(str)) "" else str
+        // ✅ FIXED: Filter emoji dengan cara yang lebih robust
+        // 1. Cari semua emoji sequence
+        // 2. Cek apakah ada di whitelist (compare by codepoints, bukan string)
+        // 3. Hapus yang tidak diperbolehkan
+        cleaned = EMOJI_REGEX.replace(cleaned) { match ->
+            val emojiSequence = match.value
+
+            // ✅ Check apakah emoji ini diperbolehkan
+            val isAllowed = ALLOWED_LAUGH_EMOJI.any { allowedEmoji ->
+                // Compare by content, handle surrogate pairs
+                emojiSequence == allowedEmoji ||
+                        emojiSequence.codePoints().toArray().contentEquals(allowedEmoji.codePoints().toArray())
             }
-        }.joinToString("")
+
+            if (isAllowed) {
+                emojiSequence
+            } else {
+                // Coba pecah dan cek base emoji (tanpa modifier)
+                val baseEmoji = emojiSequence.codePoints()
+                    .filter { cp ->
+                        // Ambil base emoji, skip modifier
+                        cp < 0x1F3FB || cp > 0x1F3FF // Skip skin tone
+                    }
+                    .toArray()
+                    .let { String(it, 0, it.size) }
+
+                val isBaseAllowed = ALLOWED_LAUGH_EMOJI.any { allowedEmoji ->
+                    baseEmoji == allowedEmoji ||
+                            baseEmoji.codePoints().toArray().contentEquals(allowedEmoji.codePoints().toArray())
+                }
+
+                if (isBaseAllowed) baseEmoji else "" // Hapus emoji yang tidak diperbolehkan
+            }
+        }
 
         cleaned = cleaned.replace(Regex("\\s{2,}"), " ").trim()
 
@@ -250,7 +316,9 @@ object TextCleaner {
             ENGLISH_REGEX.containsMatchIn(cleaned)) {
             return OpenerData.delayMessages.random()
         }
-
+        if (containsPhoneNumber(cleaned)) {
+            return OpenerData.delayMessages.random()
+        }
         return cleaned.lowercase()
     }
 }

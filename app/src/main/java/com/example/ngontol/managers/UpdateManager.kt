@@ -83,6 +83,7 @@ object UpdateManager {
                 "update_app.apk"
             )
 
+
         val dm = activity.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val downloadId = dm.enqueue(request)
 
