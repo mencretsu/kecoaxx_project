@@ -30,7 +30,7 @@ object S7Service : BaseAppService(AppConfigs.LAYLA) {
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun start(service: AccessibilityService, scope: CoroutineScope, isRunning: () -> Boolean) {
-        Log.d(TAG, "S7Service started..")
+        Log.d(TAG, "S7Service started")
         onAccessibilityEvent(service, scope, isRunning)
     }
 
