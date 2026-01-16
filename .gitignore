@@ -16,3 +16,4 @@ local.properties
 *.jks
 *.keystore
 keystore/
+app/src/main/assets/api_keys.txt
